@@ -1,0 +1,32 @@
+Manifest-Version: 1.0
+Bnd-LastModified: 1498637577346
+Build-Jdk: 1.8.0_131
+Built-By: fan
+Bundle-Description: ONOS OSGi bundle archetype
+Bundle-ManifestVersion: 2
+Bundle-Name: fwd-app
+Bundle-SymbolicName: fan.fwd.app
+Bundle-Version: 1.10.0
+Created-By: Apache Maven Bundle Plugin
+Export-Package: fan.fwd.app;uses:="org.onlab.packet,org.onosproject.cfg,
+ org.onosproject.core,org.onosproject.net,org.onosproject.net.device,org
+ .onosproject.net.flow,org.onosproject.net.flowobjective,org.onosproject
+ .net.host,org.onosproject.net.packet,org.onosproject.net.topology,org.o
+ nosproject.store.service,org.osgi.service.component";version="1.10.0"
+Import-Package: com.google.common.base;version="[22.0,23)",com.google.co
+ mmon.collect;version="[22.0,23)",org.json,org.onlab.packet;version="[1.
+ 10,2)",org.onlab.util;version="[1.10,2)",org.onosproject.cfg;version="[
+ 1.10,2)",org.onosproject.core;version="[1.10,2)",org.onosproject.event;
+ version="[1.10,2)",org.onosproject.net;version="[1.10,2)",org.onosproje
+ ct.net.device;version="[1.10,2)",org.onosproject.net.flow;version="[1.1
+ 0,2)",org.onosproject.net.flow.criteria;version="[1.10,2)",org.onosproj
+ ect.net.flow.instructions;version="[1.10,2)",org.onosproject.net.flowob
+ jective;version="[1.10,2)",org.onosproject.net.host;version="[1.10,2)",
+ org.onosproject.net.link;version="[1.10,2)",org.onosproject.net.packet;
+ version="[1.10,2)",org.onosproject.net.topology;version="[1.10,2)",org.
+ onosproject.store;version="[1.10,2)",org.onosproject.store.serializers;
+ version="[1.10,2)",org.onosproject.store.service;version="[1.10,2)",org
+ .osgi.service.component;version="[1.2,2)",org.slf4j;version="[1.7,2)"
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+Service-Component: OSGI-INF/fan.fwd.app.ReactiveForwarding.xml
+Tool: Bnd-3.0.0.201509101326
