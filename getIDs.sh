@@ -17,7 +17,7 @@ deallocate prepare ex1;
 set @s = @e;
 set @n = @n + 1;
 end if;
-select sleep(3);
+do sleep(3);
 set @c = (select count(*) from Association where Asso_ID > @s);
 set @e = @s + @c;
 end while;
