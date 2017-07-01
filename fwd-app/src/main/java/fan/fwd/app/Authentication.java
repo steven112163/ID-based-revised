@@ -43,7 +43,8 @@ public class Authentication {
 
     private String result = "Drop";
 
-    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    DateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
 
     private String accessDbUrl = "http://127.0.0.1:5000";
 
@@ -111,12 +112,13 @@ public class Authentication {
 
     private void insertAssociation() {
         try {
-            String nowTime = dateFormat.format(new Date(Long.valueOf(this.time)));
+            String date = dateFormat.format(new Date(Long.valueOf(this.time)));
+            String time = timeFormat.format(new Date(Long.valueOf(this.time)));
 
             String s_url = accessDbUrl + "/insert_asso?src_mac=" + src_mac + "&dst_mac=" + dst_mac + 
                 "&src_ip=" + src_ip + "&dst_ip=" + dst_ip + "&src_port=" + src_port + "&dst_port=" + dst_port + 
                 "&protocol=" + protocol + "&src_user=" + src_user + "&dst_user=" + dst_user + "&in_sw=" + in_sw + 
-                "&in_port=" + in_port + "&time=" + nowTime + "&access_sw=" + access_sw + "&access_port=" + access_port;
+                "&in_port=" + in_port + "&date=" + date + "&time=" + time + "&access_sw=" + access_sw + "&access_port=" + access_port;
 
             s_url = s_url.replace(" ","%20");
             URL url = new URL(s_url);
