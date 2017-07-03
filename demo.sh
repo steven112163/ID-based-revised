@@ -24,12 +24,12 @@ do
             out_n=$(ls /tmp/result/$i/out | grep "^test" | wc -l)+1
 
             exists=$(mysql -uroot -p'root' portal -se "select if (exists(select * from Association where Asso_ID > $s \
-            and Asso_ID <= $e and Src_User_ID = $i), 1, 0)")
+            and Asso_ID <= $e and Src_User_ID = '$i'), 1, 0)")
 
             if [ $exists -eq 1 ]; then
                 mysql -uroot -p'root' portal -se "select Date, Time, (select Location from Switch where \
                 Switch_ID = Src_access_sw), Bytes from Association where Asso_ID > $s \
-                and Asso_ID <= $e and Switch_ID = Src_access_sw and Switch_port = Src_access_port and Src_User_ID = $i \
+                and Asso_ID <= $e and Switch_ID = Src_access_sw and Switch_port = Src_access_port and Src_User_ID = '$i' \
                 and Bytes != 0 into outfile '/tmp/result/$i/out/test$out_n.csv' fields terminated by ',' \
                 enclosed by '\"' lines terminated by '\\n'"
             fi
@@ -39,12 +39,12 @@ do
             in_n=$(ls /tmp/result/$i/in | grep "^test" | wc -l)+1
 
             exists=$(mysql -uroot -p'root' portal -se "select if (exists(select * from Association where Asso_ID > $s \
-            and Asso_ID <= $e and Dst_User_ID = $i), 1, 0)")
+            and Asso_ID <= $e and Dst_User_ID = '$i'), 1, 0)")
 
             if [ $exists -eq 1 ]; then
                 mysql -uroot -p'root' portal -se "select Date, Time, (select Location from Switch where \
                 Switch_ID = Dst_access_sw), Bytes from Association where Asso_ID > $s and Bytes != 0 \
-                and Asso_ID <= $e and Switch_ID = Dst_access_sw and Dst_User_ID = $i \
+                and Asso_ID <= $e and Switch_ID = Dst_access_sw and Dst_User_ID = '$i' \
                 into outfile '/tmp/result/$i/in/test$in_n.csv' fields terminated by ',' \
                 enclosed by '\"' lines terminated by '\\n'"
             fi

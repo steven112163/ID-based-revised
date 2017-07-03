@@ -22,6 +22,7 @@ f.close()
 dirList = os.listdir('/tmp/result/')
 #print dirList
 
+location_result = None
 for dir_ in dirList:
     fileList = os.listdir('/tmp/result/' + dir_ + '/in/')
     r = re.compile("^test")
@@ -53,12 +54,11 @@ for dir_ in dirList:
                     df_filter = (df[(df.Week == w) & (df.Time == h) & (df.Location == l)])
 
                     if len(df_filter.index) > 0:
-                        mean_bytes = '{:.2f}'.format(np.mean(df_filter["Bytes"])*8/3600)
+                        mean_bytes = float('{:.2f}'.format(np.mean(df_filter["Bytes"])*8/(3600*1024)))
                         result.append([w, h, l, mean_bytes])
 
-        df_result = pd.DataFrame(result, columns=["Week", "Time", "Location", "bps"])
-        #print df_result
-        df_result.to_csv('/tmp/result/' + dir_ + '/in/result.csv', index=False)
+        in_result = pd.DataFrame(result, columns=["Week", "Time", "Location", "Kbps"])
+        in_result.to_csv('/tmp/result/' + dir_ + '/in/result.csv', index=False)
 
     
     fileList = os.listdir('/tmp/result/' + dir_ + '/out/')
@@ -91,12 +91,22 @@ for dir_ in dirList:
                     df_filter = (df[(df.Week == w) & (df.Time == h) & (df.Location == l)])
 
                     if len(df_filter.index) > 0:
-                        mean_bytes = '{:.2f}'.format(np.mean(df_filter["Bytes"])*8/3600)
+                        mean_bytes = float('{:.2f}'.format(np.mean(df_filter["Bytes"])*8/(3600*1024)))
                         result.append([w, h, l, mean_bytes])
 
-        df_result = pd.DataFrame(result, columns=["Week", "Time", "Location", "bps"])
-        #print df_result
-        df_result.to_csv('/tmp/result/' + dir_ + '/out/result.csv', index=False)
+        out_result = pd.DataFrame(result, columns=["Week", "Time", "Location", "Kbps"])
+        out_result.to_csv('/tmp/result/' + dir_ + '/out/result.csv', index=False)
+
+    total_result = pd.concat([in_result, out_result]).groupby(["Week", "Time", "Location"], as_index=False)["Kbps"].mean()
+    total_result["Kbps"] = float('{:.2f}'.format(*total_result["Kbps"]))
+    total_result.to_csv('/tmp/result/' + dir_ + '/result.csv', index=False)
+    total_result["User"] = dir_
+
+    location_result = pd.concat([location_result, total_result])
+    
+print location_result
+#location_result["Kbps"] = '{:.2f}'.format(*location_result["Kbps"])
+print location_result["Kbps"].sum()
             
                 
             
