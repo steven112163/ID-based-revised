@@ -116,5 +116,24 @@ def insert_asso():
 
     return "finish"
 
+@app.route ( '/update_bytes',  methods = [ 'GET' ])
+def update_bytes():
+    src_mac = request.args.get('src_mac')
+    dst_mac = request.args.get('dst_mac')
+    src_ip = request.args.get('src_ip')
+    dst_ip = request.args.get('dst_ip')
+    src_port = request.args.get('src_port')
+    dst_port = request.args.get('dst_port')
+    protocol = request.args.get('protocol')
+    in_sw = request.args.get('in_sw')
+    in_port = request.args.get('in_port')
+    bytes = request.args.get('bytes')
+
+    cursor.execute("UPDATE Association SET Bytes=Bytes+'" + bytes + "' WHERE Src_MAC='" + src_mac + "' and Dst_MAC='" + dst_mac + "' and Src_IP='" + src_ip + "' and Dst_IP='" + dst_ip + "' and Src_Port='" + src_port + "' and Dst_Port='" + dst_port + "' and Protocol='" + protocol + "' and Switch_ID='" + in_sw + "' and Switch_port='" + in_port + "'")
+
+    conn.commit()
+
+    return "finish"
+
 if  __name__  ==  '__main__' : 
     app.run ( host = '0.0.0.0', port = 5000, debug = True )

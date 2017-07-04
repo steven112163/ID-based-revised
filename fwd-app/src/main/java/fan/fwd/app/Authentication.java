@@ -35,6 +35,7 @@ public class Authentication {
     private String in_port;
 
     private String time;
+    private Long bytes;
 
     private String src_user = "";
     private String dst_user = "";
@@ -118,7 +119,8 @@ public class Authentication {
             String s_url = accessDbUrl + "/insert_asso?src_mac=" + src_mac + "&dst_mac=" + dst_mac + 
                 "&src_ip=" + src_ip + "&dst_ip=" + dst_ip + "&src_port=" + src_port + "&dst_port=" + dst_port + 
                 "&protocol=" + protocol + "&src_user=" + src_user + "&dst_user=" + dst_user + "&in_sw=" + in_sw + 
-                "&in_port=" + in_port + "&date=" + date + "&time=" + time + "&access_sw=" + access_sw + "&access_port=" + access_port;
+                "&in_port=" + in_port + "&date=" + date + "&time=" + time + "&access_sw=" + access_sw + 
+                "&access_port=" + access_port;
 
             s_url = s_url.replace(" ","%20");
             URL url = new URL(s_url);
@@ -130,6 +132,27 @@ public class Authentication {
         }
         catch (Exception e) {
             log.info("insertAssociation exception: ", e);
+            return;			
+        }
+    }
+    
+    public void updateBytes(String in_sw, String in_port, String src_mac, String dst_mac, String src_ip, String dst_ip, 
+            String src_port, String dst_port, short protocol, Long bytes) {
+        try {
+            String s_url = accessDbUrl + "/update_bytes?src_mac=" + src_mac + "&dst_mac=" + dst_mac + 
+                "&src_ip=" + src_ip + "&dst_ip=" + dst_ip + "&src_port=" + src_port + "&dst_port=" + dst_port + 
+                "&protocol=" + protocol + "&in_sw=" + in_sw + "&in_port=" + in_port + "&bytes=" + bytes;
+
+            s_url = s_url.replace(" ","%20");
+            URL url = new URL(s_url);
+            URLConnection yc = url.openConnection();
+            BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
+
+            String inputLine = in.readLine();
+            in.close();
+        }
+        catch (Exception e) {
+            log.info("updateBytes exception: ", e);
             return;			
         }
     }

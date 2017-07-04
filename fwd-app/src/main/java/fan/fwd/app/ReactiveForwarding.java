@@ -56,11 +56,20 @@ import org.onosproject.net.PortNumber;
 import org.onosproject.net.device.DeviceEvent;
 import org.onosproject.net.device.DeviceListener;
 import org.onosproject.net.device.DeviceService;
+import org.onosproject.net.flow.criteria.PortCriterion;
+import org.onosproject.net.flow.criteria.EthCriterion;
+import org.onosproject.net.flow.criteria.IPCriterion;
+import org.onosproject.net.flow.criteria.IPProtocolCriterion;
+import org.onosproject.net.flow.criteria.TcpPortCriterion;
+import org.onosproject.net.flow.criteria.UdpPortCriterion;
 import org.onosproject.net.flow.DefaultTrafficSelector;
 import org.onosproject.net.flow.DefaultTrafficTreatment;
+import org.onosproject.net.flow.DefaultFlowEntry;
 import org.onosproject.net.flow.FlowEntry;
 import org.onosproject.net.flow.FlowRule;
 import org.onosproject.net.flow.FlowRuleService;
+import org.onosproject.net.flow.FlowRuleListener;
+import org.onosproject.net.flow.FlowRuleEvent;
 import org.onosproject.net.flow.TrafficSelector;
 import org.onosproject.net.flow.TrafficTreatment;
 import org.onosproject.net.flow.criteria.Criterion;
@@ -166,6 +175,7 @@ public class ReactiveForwarding {
 
     private final TopologyListener topologyListener = new InternalTopologyListener();
     private DeviceListener deviceListener = new InternalDeviceListener();
+    private FlowRuleListener flowRuleListener = new InternalFlowRuleListener();
 
     private HashMap<PortNumber, MacAddress> tempMac;
     private HashMap<PortNumber, Ip4Address> tempIp;
@@ -199,6 +209,7 @@ public class ReactiveForwarding {
         packetService.addProcessor(processor, PacketProcessor.director(2));
         topologyService.addListener(topologyListener);
         deviceService.addListener(deviceListener);
+        flowRuleService.addListener(flowRuleListener);
         readComponentConfiguration(context);
         requestIntercepts();
 
@@ -218,6 +229,7 @@ public class ReactiveForwarding {
         packetService.removeProcessor(processor);
         topologyService.removeListener(topologyListener);
         deviceService.removeListener(deviceListener);
+        flowRuleService.removeListener(flowRuleListener);
         processor = null;
         log.info("fan.fwd Stopped");
     }
@@ -740,11 +752,57 @@ public class ReactiveForwarding {
     }
 
 
+    private class InternalFlowRuleListener implements FlowRuleListener {
+        @Override
+        public void event(FlowRuleEvent event) {
+            switch(event.type()) {
+                case RULE_REMOVED:
+                    FlowRule flowRule = event.subject();
+                    FlowEntry flowEntry = (FlowEntry)flowRule;
+
+                    DeviceId switchId = flowRule.deviceId();
+                    TrafficSelector selector = flowRule.selector();
+                    Long bytes = flowEntry.bytes();
+
+                    String in_port = ((PortCriterion)selector.getCriterion(Criterion.Type.IN_PORT)).port().toString();
+                    String src_mac = ((EthCriterion)selector.getCriterion(Criterion.Type.ETH_SRC)).mac().toString();
+                    String dst_mac = ((EthCriterion)selector.getCriterion(Criterion.Type.ETH_DST)).mac().toString();
+                    String src_ip = ((IPCriterion)selector.getCriterion(Criterion.Type.IPV4_SRC)).ip().address().toString();
+                    String dst_ip = ((IPCriterion)selector.getCriterion(Criterion.Type.IPV4_DST)).ip().address().toString();
+                    String src_port = "";
+                    String dst_port = "";
+                    short protocol = ((IPProtocolCriterion)selector.getCriterion(Criterion.Type.IP_PROTO)).protocol();
+                    if(protocol == IPv4.PROTOCOL_TCP) {
+                        src_port = ((TcpPortCriterion)selector.getCriterion(Criterion.Type.TCP_SRC)).tcpPort().toString();
+                        dst_port = ((TcpPortCriterion)selector.getCriterion(Criterion.Type.TCP_DST)).tcpPort().toString();
+                    }
+                    else if(protocol == IPv4.PROTOCOL_UDP) {
+                        src_port = ((UdpPortCriterion)selector.getCriterion(Criterion.Type.UDP_SRC)).udpPort().toString();
+                        dst_port = ((UdpPortCriterion)selector.getCriterion(Criterion.Type.UDP_DST)).udpPort().toString();
+                    }
+                    
+                    log.info("updateBytes");
+                    log.info("switchId: {}", switchId);
+                    log.info("src_mac: {}", src_mac);
+                    log.info("src_ip: {}", src_ip);
+                    log.info("src_port: {}", src_port);
+                    log.info("protocol: {}", protocol);
+                    log.info("in_port: {}", in_port);
+                    log.info("bytes: {}", bytes);
+
+                    auth.updateBytes(switchId.toString(), in_port, src_mac, dst_mac, src_ip, dst_ip, src_port, dst_port, protocol, bytes);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
     private class InternalDeviceListener implements DeviceListener {
         @Override
         public void event(DeviceEvent event) {
-            log.info("DeviceEvent: {}", event.type());
-            log.info("Subject: {}", event.subject());
+            //log.info("DeviceEvent: {}", event.type());
+            //log.info("Subject: {}", event.subject());
             
             DeviceId switchId = event.subject().id();
 

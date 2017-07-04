@@ -24,7 +24,7 @@ do
             and Asso_ID <= $e and Src_User_ID = $i), 1, 0)")
 
             if [ $exists -eq 1 ]; then
-                mysql -uroot -p'root' portal -se "select Src_User_ID, Date, Time from Association where Asso_ID > $s \
+                mysql -uroot -p'root' portal -se "select Date, Time from Association where Asso_ID > $s \
                 and Asso_ID <= $e and Switch_ID = Access_sw and Switch_port = Access_port and Src_User_ID = $i \
                 into outfile '/tmp/$i/test$n.csv' fields terminated by ',' enclosed by '\"' lines terminated by '\\n'"
             fi
@@ -35,7 +35,7 @@ do
         #pig -x local -p a=$n -f loadIDs.pig
         s=$e
         #n=$n+1
-    fi 
+    fi
     sleep 3
     c=$(mysql -uroot -p'root' portal -se "select count(*) from Association where Asso_ID > $s")
     e=s+c
