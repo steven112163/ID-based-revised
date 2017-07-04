@@ -6,7 +6,7 @@ import csv
 
 l1=[]
 l2=[]
-f = open('/tmp/0456501/test1.csv', 'r')
+f = open('/tmp/0456501/out/test1.csv', 'r')
 for row in csv.reader(f):
     l1.append(datetime.strptime(row[0],'%Y-%m-%d').weekday())
     l1.append(int(row[1].split(':')[0]))

@@ -28,8 +28,10 @@ public class Authentication {
     private String dst_port = "";
     private byte protocol;
 
-    private String access_sw;
-    private String access_port;
+    private String src_access_sw;
+    private String src_access_port;
+    private String dst_access_sw;
+    private String dst_access_port;
 
     private String in_sw;
     private String in_port;
@@ -50,8 +52,8 @@ public class Authentication {
     private String accessDbUrl = "http://127.0.0.1:5000";
 
     public Authentication(String src_mac, String dst_mac, String src_ip, String dst_ip, 
-            String src_port, String dst_port, byte protocol, String access_sw, String access_port, 
-            String in_sw, String in_port, String time) {
+            String src_port, String dst_port, byte protocol, String src_access_sw, String src_access_port, 
+            String dst_access_sw, String dst_access_port, String in_sw, String in_port, String time) {
 
         this.src_mac = src_mac;
         this.dst_mac = dst_mac;
@@ -64,8 +66,10 @@ public class Authentication {
             this.dst_port = dst_port;
         }
 
-        this.access_sw = access_sw;
-        this.access_port = access_port;
+        this.src_access_sw = src_access_sw;
+        this.src_access_port = src_access_port;
+        this.dst_access_sw = dst_access_sw;
+        this.dst_access_port = dst_access_port;
 
         this.in_sw = in_sw;
         this.in_port = in_port;
@@ -119,8 +123,9 @@ public class Authentication {
             String s_url = accessDbUrl + "/insert_asso?src_mac=" + src_mac + "&dst_mac=" + dst_mac + 
                 "&src_ip=" + src_ip + "&dst_ip=" + dst_ip + "&src_port=" + src_port + "&dst_port=" + dst_port + 
                 "&protocol=" + protocol + "&src_user=" + src_user + "&dst_user=" + dst_user + "&in_sw=" + in_sw + 
-                "&in_port=" + in_port + "&date=" + date + "&time=" + time + "&access_sw=" + access_sw + 
-                "&access_port=" + access_port;
+                "&in_port=" + in_port + "&date=" + date + "&time=" + time + "&src_access_sw=" + src_access_sw + 
+                "&src_access_port=" + src_access_port + "&dst_access_sw=" + dst_access_sw + 
+                "&dst_access_port=" + dst_access_port;
 
             s_url = s_url.replace(" ","%20");
             URL url = new URL(s_url);

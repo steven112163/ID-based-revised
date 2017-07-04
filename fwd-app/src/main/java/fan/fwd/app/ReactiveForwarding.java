@@ -351,8 +351,16 @@ public class ReactiveForwarding {
                 DeviceId in_sw = InPkt.receivedFrom().deviceId();
                 PortNumber in_port = InPkt.receivedFrom().port();
 
-                DeviceId access_sw = hostService.getHost(srcId).location().deviceId();
-                PortNumber access_port = hostService.getHost(srcId).location().port();
+                DeviceId src_access_sw = hostService.getHost(srcId).location().deviceId();
+                PortNumber src_access_port = hostService.getHost(srcId).location().port();
+
+                String dst_access_sw = "";
+                String dst_access_port = "";
+
+                if(hostService.getHost(dstId) != null) {
+                    dst_access_sw = hostService.getHost(dstId).location().deviceId().toString();
+                    dst_access_port = hostService.getHost(dstId).location().port().toString();
+                }
 
                 if(protocol == IPv4.PROTOCOL_TCP) {
                     TCP tcpPacket = (TCP) ipv4Packet.getPayload();  
@@ -367,8 +375,9 @@ public class ReactiveForwarding {
 
                 auth = new Authentication(src_mac.toString(), dst_mac.toString(), 
                             src_ip.toString(), dst_ip.toString(), src_port, dst_port, 
-                            protocol, access_sw.toString(), access_port.toString(), 
-                            in_sw.toString(), in_port.toString(), String.valueOf(context.time()));
+                            protocol, src_access_sw.toString(), src_access_port.toString(), 
+                            dst_access_sw, dst_access_port, in_sw.toString(), in_port.toString(), 
+                            String.valueOf(context.time()));
 
                 String resultAction = auth.accessCheck();
 

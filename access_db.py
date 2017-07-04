@@ -108,10 +108,12 @@ def insert_asso():
     in_port = request.args.get('in_port')
     date = request.args.get('date')
     time = request.args.get('time')
-    access_sw = request.args.get('access_sw')
-    access_port = request.args.get('access_port')
+    src_access_sw = request.args.get('src_access_sw')
+    src_access_port = request.args.get('src_access_port')
+    dst_access_sw = request.args.get('dst_access_sw')
+    dst_access_port = request.args.get('dst_access_port')
 
-    cursor.execute("INSERT INTO Association (Src_MAC, Dst_MAC, Src_IP, Dst_IP, Src_Port, Dst_Port, Protocol, Src_User_ID, Dst_User_ID, Switch_ID, Switch_port, Date, Time, Access_sw, Access_port) VALUES ('" + src_mac + "', '" + dst_mac + "', '" + src_ip + "', '" + dst_ip + "', '" + src_port + "', '" + dst_port + "', '" + protocol + "', '" + src_user + "', '" + dst_user + "', '" + in_sw + "', '" + in_port + "', '" + date + "', '" + time + "', '" + access_sw + "', '" + access_port + "')")
+    cursor.execute("INSERT INTO Association (Src_MAC, Dst_MAC, Src_IP, Dst_IP, Src_Port, Dst_Port, Protocol, Src_User_ID, Dst_User_ID, Switch_ID, Switch_port, Date, Time, Src_access_sw, Src_access_port, Dst_access_sw, Dst_access_port) VALUES ('" + src_mac + "', '" + dst_mac + "', '" + src_ip + "', '" + dst_ip + "', '" + src_port + "', '" + dst_port + "', '" + protocol + "', '" + src_user + "', '" + dst_user + "', '" + in_sw + "', '" + in_port + "', '" + date + "', '" + time + "', '" + src_access_sw + "', '" + src_access_port + "', '" + dst_access_sw + "', '" + dst_access_port + "')")
     conn.commit()
 
     return "finish"
