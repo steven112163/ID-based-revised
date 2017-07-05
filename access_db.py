@@ -131,7 +131,7 @@ def update_bytes():
     in_port = request.args.get('in_port')
     bytes = request.args.get('bytes')
 
-    cursor.execute("UPDATE Association SET Bytes=Bytes+'" + bytes + "' WHERE Src_MAC='" + src_mac + "' and Dst_MAC='" + dst_mac + "' and Src_IP='" + src_ip + "' and Dst_IP='" + dst_ip + "' and Src_Port='" + src_port + "' and Dst_Port='" + dst_port + "' and Protocol='" + protocol + "' and Switch_ID='" + in_sw + "' and Switch_port='" + in_port + "'")
+    cursor.execute("UPDATE Association SET Bytes=Bytes+'" + bytes + "' WHERE Src_MAC='" + src_mac + "' and Dst_MAC='" + dst_mac + "' and Src_IP='" + src_ip + "' and Dst_IP='" + dst_ip + "' and Src_Port='" + src_port + "' and Dst_Port='" + dst_port + "' and Protocol='" + protocol + "' and Switch_ID='" + in_sw + "' and Switch_port='" + in_port + "' ORDER BY Asso_ID DESC LIMIT 1")
 
     conn.commit()
 
