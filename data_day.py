@@ -50,21 +50,28 @@ def analyze_data(user, direction, count):
 
     location = list(set(df["Location"]))
     for i in range(len(df.index)):
-        df.ix[i,"Date"] = week[datetime.strptime(df.ix[i,"Date"],'%Y-%m-%d').weekday()]
+        #df.ix[i,"Date"] = week[datetime.strptime(df.ix[i,"Date"],'%Y-%m-%d').weekday()]
         df.ix[i,"Time"] = int(df.ix[i,"Time"].split(':')[0])
 
     result = []
-    for w in week:
+    for d in list(set(df["Date"])):
         for h in range(23):
             for l in location:
-                df_filter = (df[(df.Date == w) & (df.Time == h) & (df.Location == l)])
+                df_filter = (df[(df.Date == d) & (df.Time == h) & (df.Location == l)])
 
                 if len(df_filter.index) > 0:
-                    sum_bytes = np.sum(df_filter["Bytes"])
-                    mean_bytes = float('{:.2f}'.format(np.sum(df_filter["Bytes"])*8/(3600.0*1024.0)))
-                    result.append([w, h, l, mean_bytes, sum_bytes])
+                    #sum_bytes = np.sum(df_filter["Bytes"])
+                    mean_bytes = float(np.sum(df_filter["Bytes"])*8/(3600.0*1024.0))
+                    result.append([d, h, l, mean_bytes])
 
-    out_result = pd.DataFrame(result, columns=["Week", "Time", "Location", "Kbps", "Bytes"])
+    out_result = pd.DataFrame(result, columns=["Date", "Time", "Location", "Kbps"])
+
+    #print out_result
+
+    #out_result = out_result.groupby(["Time", "Location"], as_index=False)["Kbps"].mean()
+
+    #print out_result
+    #print
 
     fp = open("/tmp/result/" + user + "/" + direction + "/result.csv", "w")
     myFile = csv.writer(fp)
@@ -102,29 +109,38 @@ while True:
 
 
             out_result = analyze_data(str(row[0]), "out", out_n)
-
             in_result = analyze_data(str(row[0]), "in", in_n)
             
 
-            total_result = pd.concat([in_result, out_result]).groupby(["Week", "Time", "Location"], as_index=False)["Kbps"].sum()
-            
-            total_result["Kbps"] = total_result["Kbps"].map('{:.2f}'.format)
+            total_result = pd.concat([in_result, out_result]).groupby(["Date", "Time", "Location"], as_index=False)["Kbps"].sum()
             total_result.Kbps = total_result.Kbps.astype(float)
+
+            days_count = pd.DataFrame(total_result.groupby(["Time", "Location"]).size().reset_index(name='Count'))
+
+            for i in range(len(total_result.index)):
+                for v in days_count[(days_count["Time"] == total_result.ix[i,"Time"]) & (days_count["Location"] == total_result.ix[i,"Location"])]["Count"].values:
+                    total_result.ix[i,"Days"] = v
+
+            total_result = total_result.groupby(["Time", "Location", "Days"], as_index=False)["Kbps"].sum()
 
             path = "/tmp/result/" + str(row[0]) + "/result.csv"
             if os.path.exists(path):
                 f = open("/tmp/result/" + str(row[0]) + "/result.csv", "r")
-                pre_result = pd.read_csv(f, delimiter = ',', names = ["Week", "Time", "Location", "Kbps"])
+                pre_result = pd.read_csv(f, delimiter = ',', names = ["Time", "Location", "Days", "Kbps"])
                 f.close()
 
-                total_result = pd.concat([total_result, pre_result]).groupby(["Week", "Time", "Location"], as_index=False)["Kbps"].mean()
+                pre_result["Kbps"] = pre_result["Kbps"]*pre_result["Days"]
+                
+                total_result = pd.concat([total_result, pre_result]).groupby(["Time", "Location"], as_index=False).sum()
 
+            total_result["Kbps"] = total_result["Kbps"]/total_result["Days"]
             total_result = total_result.sort(['Time'], ascending=[True])
-            
+            total_result.Kbps = total_result.Kbps.astype(float)
             total_result.to_csv('/tmp/result/' + str(row[0]) + '/result.csv', index=False, header=False)
             #total_result["User"] = str(row[0])
 
-            N = len(total_result.index)
+
+            N = len(set(total_result["Time"]))
             M = int(max(total_result["Kbps"])) + 10
 
             fig = plt.figure()                                                               
@@ -134,24 +150,39 @@ while True:
             ax.set_xticks(major_ticks_x)                                                                                                
             ax.grid(which='both') 
             
-            width = 0.35   
-
-            rects = ax.bar(major_ticks_x, total_result["Kbps"], width, color='r')   
+            width = 0.3 
 
             ax.set_title('User ' + str(row[0]))
             ax.set_xlabel('Time')
             ax.set_ylabel('Kbps')  
 
-            ax.set_xticks(major_ticks_x + width/2)
-            ax.set_xticklabels(total_result["Time"].values.tolist()) 
+            #ax.set_xticks(major_ticks_x + width/2)
+            #ax.set_xticklabels(list(set(total_result["Time"])))
+
+            #rects = ax.bar(major_ticks_x, total_result["Kbps"], width, color='r')
 
             def autolabel(rects):
                 for rect in rects:
                     height = rect.get_height()
-                    ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
+                    ax.text(rect.get_x() + rect.get_width()/2., height+0.5,
                             '%.2f' % float(height), ha='center', va='bottom')
+            
+            x_label = []
 
-            autolabel(rects)    
+            for t, x in zip(list(set(total_result["Time"])), major_ticks_x):
+                df_filter = (total_result[total_result["Time"] == t])
+                #print df_filter
+                c = 0
+                for i in df_filter.index:
+                    rects = ax.bar(x + 0.35*c, df_filter.ix[i, "Kbps"], width, color='r')
+                    autolabel(rects)
+                    c = c + 1
+                x_label.append((x + ((c-1)*0.35+0.3)/2))
+                
+            ax.set_xticks(x_label)
+            ax.set_xticklabels(list(set(total_result["Time"])))
+            
+            #autolabel(rects)
 
             plt.ylim(0, M, 5)
             plt.show()

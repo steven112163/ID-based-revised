@@ -105,6 +105,9 @@ import java.util.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 
+import java.net.*;
+import java.text.*;
+
 /**
  * Sample reactive forwarding application.
  */
@@ -188,6 +191,8 @@ public class ReactiveForwarding {
     private String db_ip = "192.168.44.128";
 
     private Authentication auth;
+
+    DateFormat timeFormat = new SimpleDateFormat("HH:mm:ss.SSS");
 
 
     @Activate
@@ -366,6 +371,14 @@ public class ReactiveForwarding {
                     TCP tcpPacket = (TCP) ipv4Packet.getPayload();  
                     src_port = PortNumber.portNumber(Integer.toString(tcpPacket.getSourcePort())).toString();   
                     dst_port = PortNumber.portNumber(Integer.toString(tcpPacket.getDestinationPort())).toString();  
+
+                    log.info("");
+                    String time = timeFormat.format(new Date(Long.valueOf(String.valueOf(context.time()))));
+                    log.info("Time: {}", time);
+                    log.info("Payload: {}", tcpPacket.getPayload());
+                    log.info("Ack: {}", tcpPacket.getAcknowledge());
+                    log.info("Sequence: {}", tcpPacket.getSequence());
+                    log.info("WindowSize: {}", tcpPacket.getWindowSize());
                 }
                 else if(protocol == IPv4.PROTOCOL_UDP) {
                     UDP udpPacket = (UDP) ipv4Packet.getPayload();
@@ -671,6 +684,9 @@ public class ReactiveForwarding {
                 .makeTemporary(flowTimeout)
                 .add();
 
+        String time = timeFormat.format(new Date());
+        log.info("Time: {}", time);
+        
         flowObjectiveService.forward(context.inPacket().receivedFrom().deviceId(),
                                      forwardingObjective);
         forwardPacket(macMetrics);
@@ -789,16 +805,7 @@ public class ReactiveForwarding {
                         src_port = ((UdpPortCriterion)selector.getCriterion(Criterion.Type.UDP_SRC)).udpPort().toString();
                         dst_port = ((UdpPortCriterion)selector.getCriterion(Criterion.Type.UDP_DST)).udpPort().toString();
                     }
-                    
-                    log.info("updateBytes");
-                    log.info("switchId: {}", switchId);
-                    log.info("src_mac: {}", src_mac);
-                    log.info("src_ip: {}", src_ip);
-                    log.info("src_port: {}", src_port);
-                    log.info("protocol: {}", protocol);
-                    log.info("in_port: {}", in_port);
-                    log.info("bytes: {}", bytes);
-
+;
                     auth.updateBytes(switchId.toString(), in_port, src_mac, dst_mac, src_ip, dst_ip, src_port, dst_port, protocol, bytes);
                     break;
                 default:

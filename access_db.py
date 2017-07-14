@@ -113,7 +113,23 @@ def insert_asso():
     dst_access_sw = request.args.get('dst_access_sw')
     dst_access_port = request.args.get('dst_access_port')
 
-    cursor.execute("INSERT INTO Association (Src_MAC, Dst_MAC, Src_IP, Dst_IP, Src_Port, Dst_Port, Protocol, Src_User_ID, Dst_User_ID, Switch_ID, Switch_port, Date, Time, Src_access_sw, Src_access_port, Dst_access_sw, Dst_access_port) VALUES ('" + src_mac + "', '" + dst_mac + "', '" + src_ip + "', '" + dst_ip + "', '" + src_port + "', '" + dst_port + "', '" + protocol + "', '" + src_user + "', '" + dst_user + "', '" + in_sw + "', '" + in_port + "', '" + date + "', '" + time + "', '" + src_access_sw + "', '" + src_access_port + "', '" + dst_access_sw + "', '" + dst_access_port + "')")
+    cursor.execute("select if (exists(select * from Association where Src_MAC='" + src_mac + "' \
+    and Dst_MAC='" + dst_mac + "' and Src_IP='" + src_ip + "' and Dst_IP='" + dst_ip + "' \
+    and Src_Port='" + src_port + "' and Dst_Port='" + dst_port + "' and Protocol='" + protocol + "' \
+    and Switch_ID='" + in_sw + "' and Switch_port='" + in_port + "' and Date='" + date + "' \
+    and Time='" + time + "'), 1, 0)")
+
+    result = cursor.fetchone()
+    exist = result[0]
+
+    if(exist == 0):
+        cursor.execute("INSERT INTO Association (Src_MAC, Dst_MAC, Src_IP, Dst_IP, Src_Port, Dst_Port, Protocol, \
+        Src_User_ID, Dst_User_ID, Switch_ID, Switch_port, Date, Time, Src_access_sw, Src_access_port, Dst_access_sw, \
+        Dst_access_port) VALUES ('" + src_mac + "', '" + dst_mac + "', '" + src_ip + "', '" + dst_ip + "', '" + src_port + "\
+        ', '" + dst_port + "', '" + protocol + "', '" + src_user + "', '" + dst_user + "', '" + in_sw + "', '" + in_port + "\
+        ', '" + date + "', '" + time + "', '" + src_access_sw + "', '" + src_access_port + "', '" + dst_access_sw + "\
+        ', '" + dst_access_port + "')")
+
     conn.commit()
 
     return "finish"
