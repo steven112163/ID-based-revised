@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1499220265848
+Bnd-LastModified: 1500087955474
 Build-Jdk: 1.8.0_131
 Built-By: fan
 Bundle-Description: ONOS OSGi bundle archetype
@@ -11,13 +11,11 @@ Created-By: Apache Maven Bundle Plugin
 Export-Package: fan.band.app;uses:="org.onosproject.core,org.onosproject
  .net.device,org.onosproject.net.driver,org.onosproject.net.flow,org.ono
  sproject.net.flowobjective";version="1.10.0"
-Import-Package: org.onlab.packet;version="[1.10,2)",org.onlab.util;versi
- on="[1.10,2)",org.onosproject.core;version="[1.10,2)",org.onosproject.n
- et;version="[1.10,2)",org.onosproject.net.behaviour;version="[1.10,2)",
- org.onosproject.net.device;version="[1.10,2)",org.onosproject.net.drive
- r;version="[1.10,2)",org.onosproject.net.flow;version="[1.10,2)",org.on
- osproject.net.flowobjective;version="[1.10,2)",org.slf4j;version="[1.7,
- 2)"
+Import-Package: org.onlab.packet;version="[1.10,2)",org.onosproject.core
+ ;version="[1.10,2)",org.onosproject.net;version="[1.10,2)",org.onosproj
+ ect.net.device;version="[1.10,2)",org.onosproject.net.driver;version="[
+ 1.10,2)",org.onosproject.net.flow;version="[1.10,2)",org.onosproject.ne
+ t.flowobjective;version="[1.10,2)",org.slf4j;version="[1.7,2)"
 Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
 Service-Component: OSGI-INF/fan.band.app.BandwidthF.xml
 Tool: Bnd-3.0.0.201509101326

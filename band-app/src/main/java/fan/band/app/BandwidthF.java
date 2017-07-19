@@ -96,11 +96,12 @@ public class BandwidthF {
 
     @Deactivate
     protected void deactivate() {
+        flowRuleService.removeFlowRulesById(appId);
         log.info("band Stopped");
     }
 
     public void test() {
- 
+        /*
         log.info("hi1");
         DriverHandler h = driverService.createHandler(DeviceId.deviceId("ovsdb:127.0.0.1"));
         log.info("hi2");
@@ -139,14 +140,15 @@ public class BandwidthF {
         log.info("Queue Info. {}", queueConfig.getQueue(qd.build()));
         //queueConfig.getQueue(qd.build());
         log.info("Bridge Info. {}", bridgeConfig.getPorts());
+        */
 
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
-                .setQueue(Long.valueOf(qd.build().queueId().toString()))
-                .setOutput(PortNumber.NORMAL)
+                .setQueue(Long.valueOf(1))
+                .setOutput(PortNumber.portNumber(1))
                 .build();
 
         TrafficSelector.Builder selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthDst(MacAddress.valueOf("ea:e9:78:fb:fd:aa"));
+        selectorBuilder.matchEthSrc(MacAddress.valueOf("ea:e9:78:fb:fd:cc"));
 
         ForwardingObjective forwardingObjective = DefaultForwardingObjective.builder()
                 .withSelector(selectorBuilder.build())
@@ -157,6 +159,6 @@ public class BandwidthF {
                 .makePermanent()
                 .add();
 
-        flowObjectiveService.forward(DeviceId.deviceId("of:0000000000000001"), forwardingObjective);
+        flowObjectiveService.forward(DeviceId.deviceId("of:0000000000000005"), forwardingObjective);
     }
 }

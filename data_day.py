@@ -80,11 +80,21 @@ def analyze_data(user, direction, count):
 
     return out_result
 
+def std_error(numbers, mean):
+    total = 0
+
+    for i in numbers:
+        total = total + ((i - mean)**2)
+
+    return (total/len(numbers))**0.5
+
 while True:
     cursor.execute("select distinct User_ID from Registered_MAC where User_ID != \"\"")
     result = cursor.fetchall()
     
     if count[0] > 0:
+        all_result = pd.DataFrame(columns=["User", "Time", "Location", "Days", "Kbps"])
+
         for row in result: # each User
             exec_str1 = "select if (exists(select * from Association where Asso_ID > " + str(start) + " \
                 and Asso_ID <= " + str(end) + " and Src_User_ID = '" + str(row[0]) + "'), 1, 0)"
@@ -137,9 +147,9 @@ while True:
             total_result = total_result.sort(['Time'], ascending=[True])
             total_result.Kbps = total_result.Kbps.astype(float)
             total_result.to_csv('/tmp/result/' + str(row[0]) + '/result.csv', index=False, header=False)
-            #total_result["User"] = str(row[0])
+            total_result["User"] = str(row[0])
 
-
+            '''
             N = len(set(total_result["Time"]))
             M = int(max(total_result["Kbps"])) + 10
 
@@ -186,8 +196,32 @@ while True:
 
             plt.ylim(0, M, 5)
             plt.show()
+            '''
+        
+            all_result = pd.concat([all_result, total_result], ignore_index=True)
+        
+        all_result = all_result.drop("Days", 1)
 
-    
+        location = list(set(all_result["Location"]))
+        for h in range(23):
+            for l in location:
+                df_filter = (all_result[(all_result.Time == h) & (all_result.Location == l)])
+
+                if len(df_filter.index) > 0:
+                    numbers = df_filter["Kbps"].values.tolist()
+                    mean = np.mean(df_filter["Kbps"])
+                    error = std_error(numbers, mean)
+                    high = mean + error
+                    low = mean - error
+                                    
+                    for i in df_filter.index:
+                        if df_filter.ix[i, "Kbps"] > high:
+                            all_result.ix[i, "Priority"] = "High"
+                        elif df_filter.ix[i, "Kbps"] < low:
+                            all_result.ix[i, "Priority"] = "Low"
+                        else:
+                            all_result.ix[i, "Priority"] = "Mid"
+
     start = end
     time.sleep(3)
 
