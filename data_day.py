@@ -202,7 +202,11 @@ while True:
         
         all_result = all_result.drop("Days", 1)
 
+        print all_result
+        print
+
         location = list(set(all_result["Location"]))
+        location_result = []
         for h in range(23):
             for l in location:
                 df_filter = (all_result[(all_result.Time == h) & (all_result.Location == l)])
@@ -221,6 +225,17 @@ while True:
                             all_result.ix[i, "Priority"] = "Low"
                         else:
                             all_result.ix[i, "Priority"] = "Mid"
+
+                    sum_bytes = np.sum(df_filter["Kbps"])
+                    location_result.append([h, l, sum_bytes])
+
+        location_result = pd.DataFrame(location_result, columns=["Time", "Location", "Kbps"])
+
+        print all_result
+        print
+
+        #print location_result
+        #print
 
     start = end
     time.sleep(3)
