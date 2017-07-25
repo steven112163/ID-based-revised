@@ -19,46 +19,44 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.onosproject.net.behaviour.QueueConfigBehaviour;
-import org.onosproject.net.behaviour.QueueInfo;
-import org.onosproject.net.DeviceId;
-import org.onosproject.net.Device;
-import org.onosproject.net.device.DeviceService;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.onosproject.core.ApplicationId;
+import org.onosproject.core.CoreService;
+import org.onosproject.net.DeviceId;
+import org.onosproject.net.Device;
+import org.onosproject.net.PortNumber;
+import org.onosproject.net.device.DeviceService;
+import org.onosproject.net.device.PortDescription;
+import org.onosproject.net.device.DefaultPortDescription;
 import org.onosproject.net.driver.DriverHandler;
 import org.onosproject.net.driver.DriverService;
 import org.onosproject.net.behaviour.ControllerConfig;
 import org.onosproject.net.behaviour.BridgeConfig;
 import org.onosproject.net.behaviour.QueueDescription;
+import org.onosproject.net.behaviour.QueueConfigBehaviour;
+import org.onosproject.net.behaviour.QueueInfo;
 import org.onosproject.net.behaviour.DefaultQueueDescription;
-import org.onosproject.net.behaviour.QueueDescription;
 import org.onosproject.net.behaviour.QueueId;
 import org.onosproject.net.behaviour.QosId;
 import org.onosproject.net.behaviour.DefaultQosDescription;
 import org.onosproject.net.behaviour.QosConfigBehaviour;
 import org.onosproject.net.behaviour.PortConfigBehaviour;
-import org.onlab.util.Bandwidth;
-import org.onosproject.net.device.PortDescription;
-import org.onosproject.net.device.DefaultPortDescription;
 import org.onosproject.net.behaviour.QosDescription;
-import org.onosproject.net.PortNumber;
 import org.onosproject.net.flowobjective.ForwardingObjective;
 import org.onosproject.net.flow.FlowRuleService;
 import org.onosproject.net.flow.TrafficSelector;
 import org.onosproject.net.flow.TrafficTreatment;
 import org.onosproject.net.flow.DefaultTrafficSelector;
 import org.onosproject.net.flow.DefaultTrafficTreatment;
-import org.onosproject.core.ApplicationId;
-import org.onosproject.core.CoreService;
 import org.onosproject.net.flowobjective.DefaultForwardingObjective;
-import org.onlab.packet.MacAddress;
-import org.onosproject.net.DeviceId;
 import org.onosproject.net.flowobjective.FlowObjectiveService;
-
+import org.onlab.packet.Ethernet;
+import org.onlab.packet.MacAddress;
+import org.onlab.packet.IpAddress;
+import org.onlab.util.Bandwidth;
 
 import java.util.*;
 
@@ -102,14 +100,14 @@ public class BandwidthF {
 
     public void test() {
         /*
-        log.info("hi1");
+        //log.info("hi1");
         DriverHandler h = driverService.createHandler(DeviceId.deviceId("ovsdb:127.0.0.1"));
-        log.info("hi2");
+        //log.info("hi2");
         QueueConfigBehaviour queueConfig = h.behaviour(QueueConfigBehaviour.class);
         QosConfigBehaviour qosConfig = h.behaviour(QosConfigBehaviour.class);
         PortConfigBehaviour portConfig = h.behaviour(PortConfigBehaviour.class);
         BridgeConfig bridgeConfig = h.behaviour(BridgeConfig.class);
-        log.info("hi3");
+        //log.info("hi3");
 
         QueueDescription.Builder qd = DefaultQueueDescription.builder();
         QueueId queueId = QueueId.queueId("3");
@@ -118,7 +116,7 @@ public class BandwidthF {
         qd.queueId(queueId).maxRate(Bandwidth.bps(Long.parseLong("40000"))).minRate(Bandwidth.bps(Long.valueOf("20000")));//.type(queueSet).;
         queueConfig.addQueue(qd.build());
 
-        log.info("hi4");
+        //log.info("hi4");
 
         Map<Long, QueueDescription> queues = new HashMap<>();
         queues.put(0L, qd.build());
@@ -141,7 +139,7 @@ public class BandwidthF {
         //queueConfig.getQueue(qd.build());
         log.info("Bridge Info. {}", bridgeConfig.getPorts());
         */
-
+        /*
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
                 .setQueue(Long.valueOf(1))
                 .setOutput(PortNumber.portNumber(1))
@@ -154,6 +152,27 @@ public class BandwidthF {
                 .withSelector(selectorBuilder.build())
                 .withTreatment(treatment)
                 .withPriority(11)
+                .withFlag(ForwardingObjective.Flag.VERSATILE)
+                .fromApp(appId)
+                .makePermanent()
+                .add();
+
+        flowObjectiveService.forward(DeviceId.deviceId("of:0000000000000005"), forwardingObjective);
+        */
+
+        TrafficTreatment treatment = DefaultTrafficTreatment.builder()
+                .setEthDst(MacAddress.valueOf("ea:e9:78:fb:fd:dd"))
+                .setIpDst(IpAddress.valueOf("192.168.44.104"))
+                .setOutput(PortNumber.portNumber(3))
+                .build();
+
+        TrafficSelector.Builder selectorBuilder = DefaultTrafficSelector.builder();
+        selectorBuilder.matchEthSrc(MacAddress.valueOf("ea:e9:78:fb:fd:cc")).matchEthType(Ethernet.TYPE_IPV4);
+
+        ForwardingObjective forwardingObjective = DefaultForwardingObjective.builder()
+                .withSelector(selectorBuilder.build())
+                .withTreatment(treatment)
+                .withPriority(12)
                 .withFlag(ForwardingObjective.Flag.VERSATILE)
                 .fromApp(appId)
                 .makePermanent()

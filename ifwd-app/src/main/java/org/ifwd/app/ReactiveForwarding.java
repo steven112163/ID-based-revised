@@ -172,6 +172,7 @@ public class ReactiveForwarding {
 
     private String portal_ip = "192.168.44.200";
     private String portal_mac = "ea:e9:78:fb:fd:2d";
+    private String portal_location = "of:0000000000000001";
 
     private String db_ip = "192.168.44.128";
 
@@ -329,7 +330,7 @@ public class ReactiveForwarding {
                     return;
                 }
                 else if(resultAction.equals("PktFromPortal")) {
-                    pktFromPortal(context);
+                    //pktFromPortal(context);
                     return;
                 }
                 else if(resultAction.equals("RedirectToPortal")) {
@@ -434,6 +435,7 @@ public class ReactiveForwarding {
         Ip4Address dst_ip = Ip4Address.valueOf(ipv4Packet.getDestinationAddress());
         PortNumber src_port = PortNumber.portNumber(Integer.toString(tcpPacket.getSourcePort()));
         DeviceId in_sw = InPkt.receivedFrom().deviceId();
+        byte ipv4Protocol = ipv4Packet.getProtocol();
 
         if(macMapping.get(src_mac) == null) {
             tempMac = new HashMap<>();
@@ -481,6 +483,36 @@ public class ReactiveForwarding {
         }
 
         OutboundPacket OutPkt = new DefaultOutboundPacket(in_sw, treatment, ByteBuffer.wrap(ethPkt.serialize()));
+        
+        
+        treatment = DefaultTrafficTreatment.builder()
+                .setIpSrc(dst_ip)
+                .setOutput(PortNumber.NORMAL)
+                .build();
+
+        Ip4Prefix matchIp4SrcPrefix =
+                    Ip4Prefix.valueOf(ipv4Packet.getSourceAddress(),
+                                      Ip4Prefix.MAX_MASK_LENGTH);
+
+        TrafficSelector.Builder selectorBuilder = DefaultTrafficSelector.builder();
+        selectorBuilder.matchEthDst(src_mac)
+                       .matchEthType(Ethernet.TYPE_IPV4)
+                       .matchIPDst(matchIp4SrcPrefix)
+                       .matchIPProtocol(ipv4Protocol)
+                       .matchTcpDst(TpPort.tpPort(tcpPacket.getSourcePort()));
+
+        ForwardingObjective forwardingObjective = DefaultForwardingObjective.builder()
+                .withSelector(selectorBuilder.build())
+                .withTreatment(treatment)
+                .withPriority(40002)
+                .withFlag(ForwardingObjective.Flag.VERSATILE)
+                .fromApp(appId)
+                .makeTemporary(flowTimeout)
+                .add();
+
+        flowObjectiveService.forward(DeviceId.deviceId(portal_location), forwardingObjective);
+        
+
         packetService.emit(OutPkt);
     }
 
@@ -648,10 +680,16 @@ public class ReactiveForwarding {
 
         //To portal
         selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthDst(MacAddress.valueOf(portal_mac)).matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(portal_ip), Ip4Prefix.MAX_MASK_LENGTH));
+        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthDst(MacAddress.valueOf(portal_mac));
         installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
 
-        if(!switchId.toString().equalsIgnoreCase("of:0000000000000001")) {
+        //From portal
+        selectorBuilder = DefaultTrafficSelector.builder();
+        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthSrc(MacAddress.valueOf(portal_mac));
+        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
+        
+        /*
+        if(!switchId.toString().equalsIgnoreCase(portal_location)) {
             //From portal
             selectorBuilder = DefaultTrafficSelector.builder();
             selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthSrc(MacAddress.valueOf(portal_mac)).matchTcpSrc(TpPort.tpPort(80));
@@ -666,6 +704,7 @@ public class ReactiveForwarding {
         selectorBuilder = DefaultTrafficSelector.builder();
         selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthSrc(MacAddress.valueOf(portal_mac)).matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(portal_ip), Ip4Prefix.MAX_MASK_LENGTH)).matchTcpSrc(TpPort.tpPort(3000));
         installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
+        */
     }
 
     public void installDefaultRule(TrafficSelector.Builder selectorBuilder, TrafficTreatment treatment, DeviceId switchId, int priority) {
