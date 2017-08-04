@@ -1,0 +1,14 @@
+{
+    "apps": 
+    {
+        "org.ibwd.app": 
+        {
+            "uplink-interface": 
+            {
+                "coreSw": [ "s1-eth1", "s2-eth2" ],
+                "aggreSw": [ "s2-eth1", "s2-eth2" ],
+                "accessSw": [ "s3-eth1", "s3-eth2" ]
+            }
+        }
+    }
+}

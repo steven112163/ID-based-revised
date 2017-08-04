@@ -15,6 +15,8 @@
  */
 package org.ibwd.app;
 
+import org.ibwd.app.config.ConfigService;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -27,6 +29,7 @@ import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
 import org.onosproject.net.DeviceId;
 import org.onosproject.net.Device;
+import org.onosproject.net.Port;
 import org.onosproject.net.PortNumber;
 import org.onosproject.net.device.DeviceService;
 import org.onosproject.net.device.PortDescription;
@@ -60,6 +63,12 @@ import org.onlab.util.Bandwidth;
 
 import java.util.*;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.Calendar;
+import java.util.Date;
+
 /**
  * Skeletal ONOS application component.
  */
@@ -83,13 +92,21 @@ public class BandwidthF {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected FlowObjectiveService flowObjectiveService;
 
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
+    protected ConfigService configService;
+
     private ApplicationId appId;
+
+    Calendar calendar = Calendar.getInstance();
+
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
     @Activate
     protected void activate() {
         appId = coreService.registerApplication("fan.band.app");
         log.info("band Started");
         test();
+        setupConfiguration();
     }
 
     @Deactivate
@@ -98,47 +115,71 @@ public class BandwidthF {
         log.info("band Stopped");
     }
 
+    private void setupConfiguration() {
+        Set<String> cresSw = configService.getCoreSw();
+        log.info("cresSw: {}", cresSw);
+
+        Port port = deviceService.getPort(DeviceId.deviceId("of:0000000000000001"), PortNumber.portNumber(1));
+        log.info("portSpeed: {}", port.portSpeed());
+    }
+
     public void test() {
-        /*
-        //log.info("hi1");
+        /*QQ("QQ1");
+
+        int currentHour = calendar.get(Calendar.HOUR_OF_DAY);
+        c, currentHour);
+
+        calendar.add(Calendar.HOUR_OF_DAY, 1);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);  
+
+        Long currentTime = new Date().getTime();
+        long startScheduler = calendar.getTime().getTime() - currentTime;
+ 
+        scheduledExecutorService.scheduleAtFixedRate(new MyJob("QQ3"), startScheduler, 3600000, TimeUnit.MILLISECONDS);*/
+        
+
         DriverHandler h = driverService.createHandler(DeviceId.deviceId("ovsdb:127.0.0.1"));
-        //log.info("hi2");
         QueueConfigBehaviour queueConfig = h.behaviour(QueueConfigBehaviour.class);
         QosConfigBehaviour qosConfig = h.behaviour(QosConfigBehaviour.class);
         PortConfigBehaviour portConfig = h.behaviour(PortConfigBehaviour.class);
-        BridgeConfig bridgeConfig = h.behaviour(BridgeConfig.class);
-        //log.info("hi3");
+        //BridgeConfig bridgeConfig = h.behaviour(BridgeConfig.class);
 
         QueueDescription.Builder qd = DefaultQueueDescription.builder();
         QueueId queueId = QueueId.queueId("3");
 
         //Set<QueueDescription.Type> queueSet = EnumSet.of(QueueDescription.Type.MAX, QueueDescription.Type.MIN);
         qd.queueId(queueId).maxRate(Bandwidth.bps(Long.parseLong("40000"))).minRate(Bandwidth.bps(Long.valueOf("20000")));//.type(queueSet).;
-        queueConfig.addQueue(qd.build());
-
-        //log.info("hi4");
+        //queueConfig.addQueue(qd.build());
 
         Map<Long, QueueDescription> queues = new HashMap<>();
-        queues.put(0L, qd.build());
+        //queues.put(0L, qd.build());
 
         QosDescription qosDesc = DefaultQosDescription.builder()
-                .qosId(QosId.qosId(UUID.randomUUID().toString()))
+                .qosId(QosId.qosId(/*UUID.randomUUID().toString()*/"55"))
                 .type(QosDescription.Type.HTB)
                 .maxRate(Bandwidth.bps(Long.valueOf("40000")))
                 .queues(queues)
                 .build();
 
-        qosConfig.addQoS(qosDesc);
+        //qosConfig.addQoS(qosDesc);
 
         PortDescription portDesc = new DefaultPortDescription(
-                PortNumber.portNumber(Long.valueOf(4), "s1-eth2"), true);
+                PortNumber.portNumber(Long.valueOf(2), "s1-eth1"), true);
 
-        portConfig.applyQoS(portDesc, qosDesc);
+        //portConfig.applyQoS(portDesc, qosDesc);
 
-        log.info("Queue Info. {}", queueConfig.getQueue(qd.build()));
+        portConfig.removeQoS(PortNumber.portNumber(Long.valueOf(2), "s1-eth1"));
+        log.info("hi1");
+        qosConfig.deleteQoS(QosId.qosId("55"));
+        log.info("hi2");
+        queueConfig.deleteQueue(queueId);
+        log.info("hi3");
+
+        //log.info("Queue Info. {}", queueConfig.getQueue(qd.build()));
         //queueConfig.getQueue(qd.build());
-        log.info("Bridge Info. {}", bridgeConfig.getPorts());
-        */
+        //log.info("Bridge Info. {}", bridgeConfig.getPorts());
+        
         /*
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
                 .setQueue(Long.valueOf(1))
@@ -160,6 +201,7 @@ public class BandwidthF {
         flowObjectiveService.forward(DeviceId.deviceId("of:0000000000000005"), forwardingObjective);
         */
 
+        /*
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
                 .setEthDst(MacAddress.valueOf("ea:e9:78:fb:fd:dd"))
                 .setIpDst(IpAddress.valueOf("192.168.44.104"))
@@ -179,5 +221,23 @@ public class BandwidthF {
                 .add();
 
         flowObjectiveService.forward(DeviceId.deviceId("of:0000000000000005"), forwardingObjective);
+        */
+    }
+
+    public void QQ(String jobName) {        
+        log.info(jobName);
+    }
+
+    public class MyJob implements Runnable{
+        private String jobName = "";
+        
+        MyJob(String name) {
+            this.jobName = name;
+        }
+        
+        @Override
+            public void run() {        
+                QQ(jobName);
+            }
     }
 }
