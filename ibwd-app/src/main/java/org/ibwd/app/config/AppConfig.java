@@ -17,6 +17,7 @@ public class AppConfig extends Config<ApplicationId> {
     private static final String CORE_SW = "coreSw";
     private static final String AGGRE_SW = "aggreSw";
     private static final String ACCESS_SW = "accessSw";
+    private static final String SERVER_SW = "serverSw";
 
     public Set<String> getCoreSw() {
         Set<String> cresSw = Sets.newHashSet();
@@ -25,8 +26,44 @@ public class AppConfig extends Config<ApplicationId> {
         if (jsonNode.toString().isEmpty()) {
             jsonNode = ((ObjectNode) jsonNode).putArray(CORE_SW);
         }
-        jsonNode.forEach(uplinkInface -> cresSw.add(uplinkInface.asText()));
+        jsonNode.forEach(swType -> cresSw.add(swType.asText()));
 
         return cresSw;
+    }
+
+    public Set<String> getAggreSw() {
+        Set<String> aggreSw = Sets.newHashSet();
+        JsonNode jsonNode = object.get(AGGRE_SW);
+
+        if (jsonNode.toString().isEmpty()) {
+            jsonNode = ((ObjectNode) jsonNode).putArray(AGGRE_SW);
+        }
+        jsonNode.forEach(swType -> aggreSw.add(swType.asText()));
+
+        return aggreSw;
+    }
+
+    public Set<String> getAccessSw() {
+        Set<String> accessSw = Sets.newHashSet();
+        JsonNode jsonNode = object.get(ACCESS_SW);
+
+        if (jsonNode.toString().isEmpty()) {
+            jsonNode = ((ObjectNode) jsonNode).putArray(ACCESS_SW);
+        }
+        jsonNode.forEach(swType -> accessSw.add(swType.asText()));
+
+        return accessSw;
+    }
+
+    public Set<String> getServerSw() {
+        Set<String> serverSw = Sets.newHashSet();
+        JsonNode jsonNode = object.get(SERVER_SW);
+
+        if (jsonNode.toString().isEmpty()) {
+            jsonNode = ((ObjectNode) jsonNode).putArray(SERVER_SW);
+        }
+        jsonNode.forEach(swType -> serverSw.add(swType.asText()));
+
+        return serverSw;
     }
 }

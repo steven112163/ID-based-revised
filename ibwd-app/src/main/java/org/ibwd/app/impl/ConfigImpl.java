@@ -28,7 +28,7 @@ import java.util.Set;
 @Service
 public class ConfigImpl implements ConfigService {
     private static final String CONFIG_APP = "org.ibwd.app";
-    private static final String CONFIG = "uplink-interface";
+    private static final String CONFIG = "sw-type";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -55,8 +55,6 @@ public class ConfigImpl implements ConfigService {
             };
 
     private final InternalNetworkConfigListener configListener = new InternalNetworkConfigListener();
-
-    private Set<String> cresSw = Sets.newHashSet();
 
     @Activate
     protected void active() {
@@ -89,6 +87,18 @@ public class ConfigImpl implements ConfigService {
 
     public Set<String> getCoreSw() {
         return appConfig.getCoreSw();
+    }
+
+    public Set<String> getAggreSw() {
+        return appConfig.getAggreSw();
+    }
+
+    public Set<String> getAccessSw() {
+        return appConfig.getAccessSw();
+    }
+
+    public Set<String> getServerSw() {
+        return appConfig.getServerSw();
     }
 
     private class InternalNetworkConfigListener implements NetworkConfigListener {

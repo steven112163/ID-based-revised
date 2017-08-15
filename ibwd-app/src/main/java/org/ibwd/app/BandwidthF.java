@@ -27,8 +27,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
+import org.onosproject.net.ConnectPoint;
 import org.onosproject.net.DeviceId;
 import org.onosproject.net.Device;
+import org.onosproject.net.Link;
 import org.onosproject.net.Port;
 import org.onosproject.net.PortNumber;
 import org.onosproject.net.device.DeviceService;
@@ -48,6 +50,9 @@ import org.onosproject.net.behaviour.DefaultQosDescription;
 import org.onosproject.net.behaviour.QosConfigBehaviour;
 import org.onosproject.net.behaviour.PortConfigBehaviour;
 import org.onosproject.net.behaviour.QosDescription;
+import org.onosproject.net.HostId;
+import org.onosproject.net.EdgeLink;
+import org.onosproject.net.link.LinkService;
 import org.onosproject.net.flowobjective.ForwardingObjective;
 import org.onosproject.net.flow.FlowRuleService;
 import org.onosproject.net.flow.TrafficSelector;
@@ -84,6 +89,9 @@ public class BandwidthF {
     protected DriverService driverService;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
+    protected LinkService linkService;
+
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected FlowRuleService flowRuleService;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
@@ -105,8 +113,9 @@ public class BandwidthF {
     protected void activate() {
         appId = coreService.registerApplication("fan.band.app");
         log.info("band Started");
-        test();
-        setupConfiguration();
+        setQueue();
+        //test();
+        //setupConfiguration();
     }
 
     @Deactivate
@@ -115,12 +124,23 @@ public class BandwidthF {
         log.info("band Stopped");
     }
 
-    private void setupConfiguration() {
-        Set<String> cresSw = configService.getCoreSw();
-        log.info("cresSw: {}", cresSw);
+    private void setQueue() {
 
-        Port port = deviceService.getPort(DeviceId.deviceId("of:0000000000000001"), PortNumber.portNumber(1));
-        log.info("portSpeed: {}", port.portSpeed());
+    }
+
+    private void setupConfiguration() {
+        //Set<String> cresSw = configService.getCoreSw();
+        //log.info("cresSw: {}", cresSw);
+
+        ConnectPoint src = new ConnectPoint(DeviceId.deviceId("of:0000000000000001"), PortNumber.portNumber(1));
+        ConnectPoint dst = new ConnectPoint(HostId.hostId(MacAddress.valueOf("ea:e9:78:fb:fd:01")), PortNumber.portNumber(1));
+
+        EdgeLink link = (EdgeLink) linkService.getLink(src, dst);
+        log.info("link: {}", link);
+        //log.info("link bandwidth: {}", link.annotations().value("bandwidth"));
+
+        //Port port = deviceService.getPort(DeviceId.deviceId("of:0000000000000001"), PortNumber.portNumber(1));
+        //log.info("portSpeed: {}", port.portSpeed());
     }
 
     public void test() {
@@ -138,43 +158,60 @@ public class BandwidthF {
  
         scheduledExecutorService.scheduleAtFixedRate(new MyJob("QQ3"), startScheduler, 3600000, TimeUnit.MILLISECONDS);*/
         
-
+        /*
         DriverHandler h = driverService.createHandler(DeviceId.deviceId("ovsdb:127.0.0.1"));
         QueueConfigBehaviour queueConfig = h.behaviour(QueueConfigBehaviour.class);
         QosConfigBehaviour qosConfig = h.behaviour(QosConfigBehaviour.class);
         PortConfigBehaviour portConfig = h.behaviour(PortConfigBehaviour.class);
-        //BridgeConfig bridgeConfig = h.behaviour(BridgeConfig.class);
 
         QueueDescription.Builder qd = DefaultQueueDescription.builder();
-        QueueId queueId = QueueId.queueId("3");
+        QueueId queueId = QueueId.queueId("1");
 
-        //Set<QueueDescription.Type> queueSet = EnumSet.of(QueueDescription.Type.MAX, QueueDescription.Type.MIN);
-        qd.queueId(queueId).maxRate(Bandwidth.bps(Long.parseLong("40000"))).minRate(Bandwidth.bps(Long.valueOf("20000")));//.type(queueSet).;
-        //queueConfig.addQueue(qd.build());
+        qd.queueId(queueId).maxRate(Bandwidth.bps(Long.parseLong("20000000"))).minRate(Bandwidth.bps(Long.valueOf("10000000")));//.type(queueSet).;
+        queueConfig.addQueue(qd.build());
+
+        QueueDescription.Builder qd2 = DefaultQueueDescription.builder();
+        QueueId queueId2 = QueueId.queueId("2");
+
+        qd2.queueId(queueId2).maxRate(Bandwidth.bps(Long.parseLong("70000000"))).minRate(Bandwidth.bps(Long.valueOf("50000000")));//.type(queueSet).;
+        queueConfig.addQueue(qd2.build());
 
         Map<Long, QueueDescription> queues = new HashMap<>();
-        //queues.put(0L, qd.build());
+        queues.put(0L, qd.build());
+        queues.put(1L, qd2.build());
 
         QosDescription qosDesc = DefaultQosDescription.builder()
-                .qosId(QosId.qosId(/*UUID.randomUUID().toString()*/"55"))
+                .qosId(QosId.qosId("1"))
                 .type(QosDescription.Type.HTB)
-                .maxRate(Bandwidth.bps(Long.valueOf("40000")))
+                .maxRate(Bandwidth.bps(Long.valueOf("150000000")))
                 .queues(queues)
                 .build();
 
-        //qosConfig.addQoS(qosDesc);
+        qosConfig.addQoS(qosDesc);
 
         PortDescription portDesc = new DefaultPortDescription(
+                PortNumber.portNumber(Long.valueOf(2), "s1-eth2"), true);
+
+        portConfig.applyQoS(portDesc, qosDesc);
+
+        PortDescription portDesc2 = new DefaultPortDescription(
+                PortNumber.portNumber(Long.valueOf(2), "s2-eth1"), true);
+
+        portConfig.applyQoS(portDesc2, qosDesc);
+
+        PortDescription portDesc3 = new DefaultPortDescription(
                 PortNumber.portNumber(Long.valueOf(2), "s1-eth1"), true);
 
-        //portConfig.applyQoS(portDesc, qosDesc);
-
-        portConfig.removeQoS(PortNumber.portNumber(Long.valueOf(2), "s1-eth1"));
+        portConfig.applyQoS(portDesc3, qosDesc);
+        */
+        /*
+        portConfig.removeQoS(PortNumber.portNumber(Long.valueOf(2), "s1-eth2"));
         log.info("hi1");
         qosConfig.deleteQoS(QosId.qosId("55"));
         log.info("hi2");
         queueConfig.deleteQueue(queueId);
         log.info("hi3");
+        */
 
         //log.info("Queue Info. {}", queueConfig.getQueue(qd.build()));
         //queueConfig.getQueue(qd.build());
@@ -183,11 +220,11 @@ public class BandwidthF {
         /*
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
                 .setQueue(Long.valueOf(1))
-                .setOutput(PortNumber.portNumber(1))
+                .setOutput(PortNumber.portNumber(2))
                 .build();
 
         TrafficSelector.Builder selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthSrc(MacAddress.valueOf("ea:e9:78:fb:fd:cc"));
+        selectorBuilder.matchEthSrc(MacAddress.valueOf("ea:e9:78:fb:fd:bb"));
 
         ForwardingObjective forwardingObjective = DefaultForwardingObjective.builder()
                 .withSelector(selectorBuilder.build())
@@ -198,8 +235,46 @@ public class BandwidthF {
                 .makePermanent()
                 .add();
 
-        flowObjectiveService.forward(DeviceId.deviceId("of:0000000000000005"), forwardingObjective);
+        flowObjectiveService.forward(DeviceId.deviceId("of:0000000000000001"), forwardingObjective);
+
+
+       treatment = DefaultTrafficTreatment.builder()
+                .setQueue(Long.valueOf(1))
+                .setOutput(PortNumber.portNumber(1))
+                .build();
+
+        forwardingObjective = DefaultForwardingObjective.builder()
+                .withSelector(selectorBuilder.build())
+                .withTreatment(treatment)
+                .withPriority(11)
+                .withFlag(ForwardingObjective.Flag.VERSATILE)
+                .fromApp(appId)
+                .makePermanent()
+                .add();
+
+        flowObjectiveService.forward(DeviceId.deviceId("of:0000000000000002"), forwardingObjective);
+
+
+        selectorBuilder = DefaultTrafficSelector.builder();
+        selectorBuilder.matchEthDst(MacAddress.valueOf("ea:e9:78:fb:fd:bb"));
+
+        treatment = DefaultTrafficTreatment.builder()
+                .setQueue(Long.valueOf(1))
+                .setOutput(PortNumber.portNumber(1))
+                .build();
+
+        forwardingObjective = DefaultForwardingObjective.builder()
+                .withSelector(selectorBuilder.build())
+                .withTreatment(treatment)
+                .withPriority(11)
+                .withFlag(ForwardingObjective.Flag.VERSATILE)
+                .fromApp(appId)
+                .makePermanent()
+                .add();
         */
+
+        //flowObjectiveService.forward(DeviceId.deviceId("of:0000000000000001"), forwardingObjective);
+        
 
         /*
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
