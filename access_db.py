@@ -153,5 +153,60 @@ def update_bytes():
 
     return "finish"
 
+@app.route ( '/swToLocation',  methods = [ 'GET' ]) 
+def swToLocation(): 
+    sw = request.args.get('sw')
+
+    cursor.execute("SELECT Building, Room FROM Switch WHERE Switch_ID='" + sw + "'")
+    result = cursor.fetchall()
+    columns_name = [d[0] for d in cursor.description]
+
+    if not result:
+        return "empty"
+    else:
+	    for row in result:
+	        row = dict(zip(columns_name, row))
+
+    return json.dumps(row)
+
+@app.route ( '/flowClassToUserCount',  methods = [ 'GET' ]) 
+def flowClassToUserCount(): 
+    building = request.args.get('building')
+    room = request.args.get('room')
+    time_interval = request.args.get('time_interval')
+    #priority = request.args.get('priority')
+
+    cursor.execute("SELECT User_ID, Priority FROM Flow_classification WHERE Building='" + building + "' and Room='" + room + "' and Time_interval='" + time_interval + "'")
+    result = cursor.fetchall()
+    columns_name = [d[0] for d in cursor.description]
+
+    result_list = []  
+
+    if not result:
+        return "empty"
+    else:
+        for row in result:
+            result_list.append(dict(zip(columns_name, row)))
+
+    return json.dumps(result_list)
+
+@app.route ( '/buildingToPercent',  methods = [ 'GET' ]) 
+def buildingToPercent(): 
+    time_interval = request.args.get('time_interval')
+
+    cursor.execute("SELECT Building, Percentage FROM Area_flow WHERE Time_interval='" + time_interval + "'")
+    result = cursor.fetchall()
+    columns_name = [d[0] for d in cursor.description]
+
+    result_list = []  
+
+    if not result:
+        return "empty"
+    else:
+        for row in result:
+            result_list.append(dict(zip(columns_name, row)))
+
+    return json.dumps(result_list)
+
 if  __name__  ==  '__main__' : 
     app.run ( host = '0.0.0.0', port = 5000, debug = True )

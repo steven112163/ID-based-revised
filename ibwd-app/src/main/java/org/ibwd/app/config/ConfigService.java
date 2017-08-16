@@ -19,6 +19,4 @@ public interface ConfigService {
     Set<String> getAccessSw();
 
     Set<String> getServerSw();
-
-    //String getSwType(DeviceId swId);
 }

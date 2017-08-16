@@ -104,7 +104,6 @@ public class ConfigImpl implements ConfigService {
     private class InternalNetworkConfigListener implements NetworkConfigListener {
         @Override
         public void event(NetworkConfigEvent event) {
-            log.info("NetworkConfigEvent1: {}",event.type());
             if (event.configClass() == ConfigService.CONFIG_CLASS) {
                 switch (event.type()) {
                     case CONFIG_ADDED:

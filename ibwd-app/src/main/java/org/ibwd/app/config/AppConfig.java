@@ -20,15 +20,15 @@ public class AppConfig extends Config<ApplicationId> {
     private static final String SERVER_SW = "serverSw";
 
     public Set<String> getCoreSw() {
-        Set<String> cresSw = Sets.newHashSet();
+        Set<String> coreSw = Sets.newHashSet();
         JsonNode jsonNode = object.get(CORE_SW);
 
         if (jsonNode.toString().isEmpty()) {
             jsonNode = ((ObjectNode) jsonNode).putArray(CORE_SW);
         }
-        jsonNode.forEach(swType -> cresSw.add(swType.asText()));
+        jsonNode.forEach(swType -> coreSw.add(swType.asText()));
 
-        return cresSw;
+        return coreSw;
     }
 
     public Set<String> getAggreSw() {
