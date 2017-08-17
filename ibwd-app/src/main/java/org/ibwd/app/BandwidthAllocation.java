@@ -39,6 +39,8 @@ import org.onosproject.net.config.NetworkConfigEvent;
 import org.onosproject.net.config.NetworkConfigListener;
 import org.onosproject.net.config.NetworkConfigRegistry;
 import org.onosproject.net.config.NetworkConfigService;
+import org.onosproject.net.device.DeviceEvent;
+import org.onosproject.net.device.DeviceListener;
 import org.onosproject.net.device.DeviceService;
 import org.onosproject.net.device.PortDescription;
 import org.onosproject.net.device.DefaultPortDescription;
@@ -133,7 +135,8 @@ public class BandwidthAllocation implements BandwidthAllocationService{
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
-    private final InternalNetworkConfigListener configListener = new InternalNetworkConfigListener();
+    private InternalNetworkConfigListener configListener = new InternalNetworkConfigListener();
+    private InternalDeviceListener deviceListener = new InternalDeviceListener();
     
     private HashMap<DeviceId, String> swType;
 
@@ -152,6 +155,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
     protected void activate() {
         appId = coreService.registerApplication("fan.band.app");
         networkConfigService.addListener(configListener);
+        deviceService.addListener(deviceListener);
         log.info("band Started");
         setupConfiguration();
         setQueue();
@@ -162,6 +166,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
     protected void deactivate() {
         flowRuleService.removeFlowRulesById(appId);
         networkConfigService.removeListener(configListener);
+        deviceService.removeListener(deviceListener);
         log.info("band Stopped");
 
         Collection<QueueDescription> queues = queueConfig.getQueues();
@@ -181,6 +186,8 @@ public class BandwidthAllocation implements BandwidthAllocationService{
 
     public Long getQueue(DeviceId swId, PortNumber outPort, MacAddress srcMac, MacAddress dstMac) {
         String type = swType.get(swId);
+        log.info("switch {} type: {}", swId, type);
+
         if(type == null)
             return Long.valueOf(-1);
 
@@ -188,6 +195,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
         Set<Link> linkSet = linkService.getEgressLinks(cp);
         Iterator<Link> linkIt = linkSet.iterator();
 
+        //int currentHour = new Date().getTime();
         int currentHour = calendar.get(Calendar.HOUR_OF_DAY);
 
         switch (type) {
@@ -218,11 +226,15 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                 }
                 break;
             case ACCESS_SW:
+                log.info("ACCESS_SW");
+                log.info("switch: {}", swId);
                 if(linkIt.hasNext()) {
                     Link link = linkIt.next();
                     DeviceId dstSwId = link.dst().deviceId();
 
                     if(swType.get(dstSwId).equalsIgnoreCase(AGGRE_SW)) { // Src User
+                        log.info("AGGRE_SW");
+                        log.info("dstSwId: {}", dstSwId);
                         return userToQueue(srcMac, currentHour);
                     }
                 }
@@ -263,6 +275,8 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                 return Long.valueOf(-1);
             }
 
+            log.info("userId: {}", userId);
+
             HostId hostId = HostId.hostId(mac);
             DeviceId hostSw = hostService.getHost(hostId).location().deviceId();  
 
@@ -284,6 +298,10 @@ public class BandwidthAllocation implements BandwidthAllocationService{
             else if(inputLine.equals("empty"))
                 return Long.valueOf(-1);
 
+            log.info("building: {}", building);
+            log.info("room: {}", room);
+            log.info("currentHour: {}", currentHour);
+
             url = new URL(accessDbUrl + "/userToPriority?user=" + userId
                 + "&room=" + room + "&building=" + building  
                 + "&time_interval=" + currentHour);	
@@ -301,6 +319,8 @@ public class BandwidthAllocation implements BandwidthAllocationService{
             }
             else if(inputLine.equals("empty"))
                 return Long.valueOf(-1);
+
+            log.info("priority: {}", priority);
 
             if(priority == 1)
                 return Long.valueOf(1);
@@ -739,6 +759,26 @@ public class BandwidthAllocation implements BandwidthAllocationService{
         long startScheduler = calendar.getTime().getTime() - currentTime;
 
         scheduledExecutorService.scheduleAtFixedRate(new MyJob(), startScheduler, 3600000, TimeUnit.MILLISECONDS);
+        
+        calendar.setTime(new Date());
+    }
+
+    private class InternalDeviceListener implements DeviceListener {
+        @Override
+        public void event(DeviceEvent event) {
+            //log.info("DeviceEvent: {}", event);
+            switch(event.type()) {
+                case DEVICE_ADDED:
+                case DEVICE_AVAILABILITY_CHANGED:          
+                case DEVICE_REMOVED:
+                case DEVICE_SUSPENDED:
+                    setQueue();
+                    timer();
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     private class InternalNetworkConfigListener implements NetworkConfigListener {
@@ -750,6 +790,8 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                     case CONFIG_UPDATED:
                     case CONFIG_REMOVED:
                         setupConfiguration();
+                        setQueue();
+                        timer();
                         break;
                     default:
                         break;

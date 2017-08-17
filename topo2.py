@@ -14,16 +14,16 @@ class MyTopo( Topo ):
 
         Topo.__init__( self )
 
-        h1 = self.addHost('h1', ip='0.0.0.0')
-        h2 = self.addHost('h2', ip='0.0.0.0')
-        h3 = self.addHost('h3', ip='0.0.0.0')
-        h4 = self.addHost('h4', ip='0.0.0.0')
-        h5 = self.addHost('h5', ip='0.0.0.0')
-        h6 = self.addHost('h6', ip='0.0.0.0')
-        h7 = self.addHost('h7', ip='0.0.0.0')
-        h8 = self.addHost('h8', ip='0.0.0.0')
+        h1 = self.addHost('h1', ip='0.0.0.0', mac='ea:e9:78:fb:fd:01')
+        h2 = self.addHost('h2', ip='0.0.0.0', mac='ea:e9:78:fb:fd:02')
+        h3 = self.addHost('h3', ip='0.0.0.0', mac='ea:e9:78:fb:fd:03')
+        h4 = self.addHost('h4', ip='0.0.0.0', mac='ea:e9:78:fb:fd:04')
+        h5 = self.addHost('h5', ip='0.0.0.0', mac='ea:e9:78:fb:fd:05')
+        h6 = self.addHost('h6', ip='0.0.0.0', mac='ea:e9:78:fb:fd:06')
+        h7 = self.addHost('h7', ip='0.0.0.0', mac='ea:e9:78:fb:fd:07')
+        h8 = self.addHost('h8', ip='0.0.0.0', mac='ea:e9:78:fb:fd:08')
 
-        web = self.addHost('web', ip='192.168.44.101/24', mac='ea:e9:78:fb:fd:01')
+        web = self.addHost('web', ip='192.168.44.101/24', mac='ea:e9:78:fb:fd:00')
         portal = self.addHost('portal', ip='192.168.44.200/24', mac='ea:e9:78:fb:fd:2d')
         dhcp = self.addHost('dhcp', ip='192.168.44.201/24')
 

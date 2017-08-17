@@ -621,27 +621,44 @@ public class ReactiveForwarding {
             }
         }
 
+        log.info("switch: {}", context.inPacket().receivedFrom().deviceId());
+        log.info("portNumber: {}", portNumber);
+        log.info("src mac: {}", inPkt.getSourceMAC());
+        log.info("dst mac: {}", inPkt.getDestinationMAC());
+
         Long queue = bandwidthAllocationService.getQueue(context.inPacket().receivedFrom().deviceId(), 
             portNumber, inPkt.getSourceMAC(), inPkt.getDestinationMAC());
 
-        TrafficTreatment treatment = DefaultTrafficTreatment.builder()
-                .setQueue(queue)
-                .setOutput(portNumber)
-                .build();
+        log.info("queue: {}", queue);
+
+        TrafficTreatment.Builder treatmentBuilder = DefaultTrafficTreatment.builder();
+
+        if(queue != null && queue >=0)
+            treatmentBuilder.setQueue(queue);
+        
+        treatmentBuilder.setOutput(portNumber);
+
+        log.info("Hi1 !!!");
 
         ForwardingObjective forwardingObjective = DefaultForwardingObjective.builder()
                 .withSelector(selectorBuilder.build())
-                .withTreatment(treatment)
+                .withTreatment(treatmentBuilder.build())
                 .withPriority(flowPriority)
                 .withFlag(ForwardingObjective.Flag.VERSATILE)
                 .fromApp(appId)
                 .makeTemporary(flowTimeout)
                 .add();
+
+        log.info("Hi2 !!!");
         
         flowObjectiveService.forward(context.inPacket().receivedFrom().deviceId(),
                                      forwardingObjective);
+
+        log.info("Hi3 !!!");
         
         packetOut(context, portNumber);
+
+        log.info("Hi4 !!!");
     }
 
     public void addDefaultRule(DeviceId switchId) {
