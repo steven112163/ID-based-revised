@@ -190,6 +190,26 @@ def flowClassToUserCount():
 
     return json.dumps(result_list)
 
+@app.route ( '/userToPriority',  methods = [ 'GET' ]) 
+def userToPriority(): 
+    user = request.args.get('user')
+    building = request.args.get('building')
+    room = request.args.get('room')
+    time_interval = request.args.get('time_interval')
+
+
+    cursor.execute("SELECT Priority FROM Flow_classification WHERE Building='" + building + "' and Room='" + room + "' and Time_interval='" + time_interval + "' and User_ID='" + user + "'")
+    result = cursor.fetchall()
+    columns_name = [d[0] for d in cursor.description]
+
+    if not result:
+        return "empty"
+    else:
+	    for row in result:
+	        row = dict(zip(columns_name, row))
+
+    return json.dumps(row)
+
 @app.route ( '/buildingToPercent',  methods = [ 'GET' ]) 
 def buildingToPercent(): 
     time_interval = request.args.get('time_interval')
