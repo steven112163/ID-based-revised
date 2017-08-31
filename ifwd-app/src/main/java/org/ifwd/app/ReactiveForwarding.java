@@ -28,20 +28,15 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.onlab.packet.Ethernet;
 import org.onlab.packet.ICMP;
-import org.onlab.packet.ICMP6;
 import org.onlab.packet.IPv4;
-import org.onlab.packet.IPv6;
 import org.onlab.packet.IpPrefix;
 import org.onlab.packet.IpAddress;
 import org.onlab.packet.Ip4Prefix;
 import org.onlab.packet.Ip4Address;
-import org.onlab.packet.Ip6Prefix;
 import org.onlab.packet.MacAddress;
 import org.onlab.packet.TCP;
 import org.onlab.packet.TpPort;
 import org.onlab.packet.UDP;
-import org.onlab.packet.VlanId;
-import org.onlab.util.KryoNamespace;
 import org.onlab.util.Tools;
 import org.onosproject.cfg.ComponentConfigService;
 import org.onosproject.core.ApplicationId;
@@ -66,7 +61,6 @@ import org.onosproject.net.flow.criteria.TcpPortCriterion;
 import org.onosproject.net.flow.criteria.UdpPortCriterion;
 import org.onosproject.net.flow.DefaultTrafficSelector;
 import org.onosproject.net.flow.DefaultTrafficTreatment;
-import org.onosproject.net.flow.DefaultFlowEntry;
 import org.onosproject.net.flow.FlowEntry;
 import org.onosproject.net.flow.FlowRule;
 import org.onosproject.net.flow.FlowRuleService;
@@ -75,7 +69,6 @@ import org.onosproject.net.flow.FlowRuleEvent;
 import org.onosproject.net.flow.TrafficSelector;
 import org.onosproject.net.flow.TrafficTreatment;
 import org.onosproject.net.flow.criteria.Criterion;
-import org.onosproject.net.flow.criteria.EthCriterion;
 import org.onosproject.net.flow.instructions.Instruction;
 import org.onosproject.net.flow.instructions.Instructions;
 import org.onosproject.net.flowobjective.DefaultForwardingObjective;
@@ -95,10 +88,6 @@ import org.onosproject.net.topology.TopologyListener;
 import org.onosproject.net.topology.TopologyService;
 import org.onosproject.store.service.StorageService;
 import org.osgi.service.component.ComponentContext;
-import org.onosproject.store.serializers.KryoNamespaces;
-import org.onosproject.store.service.EventuallyConsistentMap;
-import org.onosproject.store.service.WallClockTimestamp;
-import org.onosproject.store.service.MultiValuedTimestamp;
 import org.slf4j.Logger;
 import static org.slf4j.LoggerFactory.getLogger;
 import java.util.*;
@@ -188,7 +177,7 @@ public class ReactiveForwarding {
     @Activate
     public void activate(ComponentContext context) {
         cfgService.registerProperties(getClass());
-        appId = coreService.registerApplication("fan.fwd.app");
+        appId = coreService.registerApplication("org.ifwd.app");
         packetService.addProcessor(processor, PacketProcessor.director(2));
         topologyService.addListener(topologyListener);
         deviceService.addListener(deviceListener);
@@ -264,7 +253,7 @@ public class ReactiveForwarding {
                 return;
             }
 
-            MacAddress macAddress = ethPkt.getSourceMAC();
+            //MacAddress macAddress = ethPkt.getSourceMAC();
 
             if (isControlPacket(ethPkt)) {
                 return;
@@ -621,24 +610,15 @@ public class ReactiveForwarding {
             }
         }
 
-        log.info("switch: {}", context.inPacket().receivedFrom().deviceId());
-        log.info("portNumber: {}", portNumber);
-        log.info("src mac: {}", inPkt.getSourceMAC());
-        log.info("dst mac: {}", inPkt.getDestinationMAC());
-
-        Long queue = bandwidthAllocationService.getQueue(context.inPacket().receivedFrom().deviceId(), 
-            portNumber, inPkt.getSourceMAC(), inPkt.getDestinationMAC());
-
-        log.info("queue: {}", queue);
+        //Long queue = bandwidthAllocationService.getQueue(context.inPacket().receivedFrom().deviceId(), 
+            //portNumber, inPkt.getSourceMAC(), inPkt.getDestinationMAC());
 
         TrafficTreatment.Builder treatmentBuilder = DefaultTrafficTreatment.builder();
 
-        if(queue != null && queue >=0)
-            treatmentBuilder.setQueue(queue);
+        //if(queue != null && queue >=0)
+            //treatmentBuilder.setQueue(queue);
         
         treatmentBuilder.setOutput(portNumber);
-
-        log.info("Hi1 !!!");
 
         ForwardingObjective forwardingObjective = DefaultForwardingObjective.builder()
                 .withSelector(selectorBuilder.build())
@@ -648,17 +628,11 @@ public class ReactiveForwarding {
                 .fromApp(appId)
                 .makeTemporary(flowTimeout)
                 .add();
-
-        log.info("Hi2 !!!");
         
         flowObjectiveService.forward(context.inPacket().receivedFrom().deviceId(),
                                      forwardingObjective);
-
-        log.info("Hi3 !!!");
         
         packetOut(context, portNumber);
-
-        log.info("Hi4 !!!");
     }
 
     public void addDefaultRule(DeviceId switchId) {

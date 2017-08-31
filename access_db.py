@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, make_response, abort, request
 from flaskext.mysql import MySQL
 from datetime import timedelta, datetime
+from pymongo import MongoClient
+from pprint import pprint
 import json
 
 app = Flask( __name__ )
@@ -14,6 +16,11 @@ app.config['MYSQL_DATABASE_DB'] = 'portal'
 mysql.init_app(app)
 conn = mysql.connect()
 cursor = conn.cursor()
+
+client = MongoClient("mongodb://192.168.44.128:27017/")
+db = client.portal
+collection = db.Flow
+counters = db.counters
 
 @app.route ( '/query_mac',  methods = [ 'GET' ]) 
 def query_mac(): 
@@ -61,8 +68,9 @@ def query_ip():
 def update_ip(): 
     ip = request.args.get('ip')
     mac = request.args.get('mac')
+    time = request.args.get('time')
 
-    cursor.execute("UPDATE IP_MAC SET MAC='" + mac + "' WHERE IP='" + ip + "'")
+    cursor.execute("UPDATE IP_MAC SET MAC='" + mac + "', Time='" + time + "' WHERE IP='" + ip + "'")
     conn.commit()
 
     return "finish"
@@ -71,8 +79,9 @@ def update_ip():
 def insert_ip(): 
     ip = request.args.get('ip')
     mac = request.args.get('mac')
+    time = request.args.get('time')
 
-    cursor.execute("INSERT INTO IP_MAC (IP, MAC) VALUES ('" + ip + "', '" + mac + "')")
+    cursor.execute("INSERT INTO IP_MAC (IP, MAC, Time) VALUES ('" + ip + "', '" + mac + "', '" + time + "')")
     conn.commit()
 
     return "finish"
@@ -92,66 +101,6 @@ def macToUser():
 	        row = dict(zip(columns_name, row))
 
     return json.dumps(row)
-
-@app.route ( '/insert_asso',  methods = [ 'GET' ])
-def insert_asso():
-    src_mac = request.args.get('src_mac')
-    dst_mac = request.args.get('dst_mac')
-    src_ip = request.args.get('src_ip')
-    dst_ip = request.args.get('dst_ip')
-    src_port = request.args.get('src_port')
-    dst_port = request.args.get('dst_port')
-    protocol = request.args.get('protocol')
-    src_user = request.args.get('src_user')
-    dst_user = request.args.get('dst_user')
-    in_sw = request.args.get('in_sw')
-    in_port = request.args.get('in_port')
-    date = request.args.get('date')
-    time = request.args.get('time')
-    src_access_sw = request.args.get('src_access_sw')
-    src_access_port = request.args.get('src_access_port')
-    dst_access_sw = request.args.get('dst_access_sw')
-    dst_access_port = request.args.get('dst_access_port')
-
-    cursor.execute("select if (exists(select * from Association where Src_MAC='" + src_mac + "' \
-    and Dst_MAC='" + dst_mac + "' and Src_IP='" + src_ip + "' and Dst_IP='" + dst_ip + "' \
-    and Src_Port='" + src_port + "' and Dst_Port='" + dst_port + "' and Protocol='" + protocol + "' \
-    and Switch_ID='" + in_sw + "' and Switch_port='" + in_port + "' and Date='" + date + "' \
-    and Time='" + time + "'), 1, 0)")
-
-    result = cursor.fetchone()
-    exist = result[0]
-
-    if(exist == 0):
-        cursor.execute("INSERT INTO Association (Src_MAC, Dst_MAC, Src_IP, Dst_IP, Src_Port, Dst_Port, Protocol, \
-        Src_User_ID, Dst_User_ID, Switch_ID, Switch_port, Date, Time, Src_access_sw, Src_access_port, Dst_access_sw, \
-        Dst_access_port) VALUES ('" + src_mac + "', '" + dst_mac + "', '" + src_ip + "', '" + dst_ip + "', '" + src_port + "\
-        ', '" + dst_port + "', '" + protocol + "', '" + src_user + "', '" + dst_user + "', '" + in_sw + "', '" + in_port + "\
-        ', '" + date + "', '" + time + "', '" + src_access_sw + "', '" + src_access_port + "', '" + dst_access_sw + "\
-        ', '" + dst_access_port + "')")
-
-    conn.commit()
-
-    return "finish"
-
-@app.route ( '/update_bytes',  methods = [ 'GET' ])
-def update_bytes():
-    src_mac = request.args.get('src_mac')
-    dst_mac = request.args.get('dst_mac')
-    src_ip = request.args.get('src_ip')
-    dst_ip = request.args.get('dst_ip')
-    src_port = request.args.get('src_port')
-    dst_port = request.args.get('dst_port')
-    protocol = request.args.get('protocol')
-    in_sw = request.args.get('in_sw')
-    in_port = request.args.get('in_port')
-    bytes = request.args.get('bytes')
-
-    cursor.execute("UPDATE Association SET Bytes=Bytes+'" + bytes + "' WHERE Src_MAC='" + src_mac + "' and Dst_MAC='" + dst_mac + "' and Src_IP='" + src_ip + "' and Dst_IP='" + dst_ip + "' and Src_Port='" + src_port + "' and Dst_Port='" + dst_port + "' and Protocol='" + protocol + "' and Switch_ID='" + in_sw + "' and Switch_port='" + in_port + "' ORDER BY Asso_ID DESC LIMIT 1")
-
-    conn.commit()
-
-    return "finish"
 
 @app.route ( '/swToLocation',  methods = [ 'GET' ]) 
 def swToLocation(): 
@@ -227,6 +176,90 @@ def buildingToPercent():
             result_list.append(dict(zip(columns_name, row)))
 
     return json.dumps(result_list)
+
+@app.route ( '/update_bytes',  methods = [ 'GET' ])
+def update_bytes():
+    src_mac = request.args.get('src_mac')
+    dst_mac = request.args.get('dst_mac')
+    src_ip = request.args.get('src_ip')
+    dst_ip = request.args.get('dst_ip')
+    src_port = request.args.get('src_port')
+    dst_port = request.args.get('dst_port')
+    protocol = request.args.get('protocol')
+    swId = request.args.get('swId')
+    port = request.args.get('port')
+    bytes = request.args.get('bytes')
+
+    collection.find_and_modify(
+        query={
+            'Src_MAC': src_mac,
+            'Dst_MAC': dst_mac,
+            'Src_IP': src_ip,
+            'Dst_IP': dst_ip,
+            'Src_port': src_port,
+            'Dst_port': dst_port,
+            'Protocol': protocol,
+            'Switch_ID': swId,
+            'Switch_port': port
+        },
+        update={
+            '$inc': { 'Bytes': int(bytes) }
+        },
+        sort={ '_id': -1 }
+    )
+
+    return "finish"
+
+@app.route ( '/insertFlow',  methods = [ 'GET' ]) 
+def insertFlow():
+    src_mac = request.args.get('src_mac')
+    dst_mac = request.args.get('dst_mac')
+    src_ip = request.args.get('src_ip')
+    dst_ip = request.args.get('dst_ip')
+    src_port = request.args.get('src_port')
+    dst_port = request.args.get('dst_port')
+    protocol = request.args.get('protocol')
+    swId = request.args.get('swId')
+    port = request.args.get('port')
+    src_user = request.args.get('src_user')
+    dst_user = request.args.get('dst_user')
+    src_swId = request.args.get('src_swId')
+    src_port = request.args.get('src_port')
+    dst_swId = request.args.get('dst_swId')
+    dst_port = request.args.get('dst_port')
+    data = request.args.get('date')
+    time = request.args.get('time')
+
+    collection.insert_one(
+        {
+            '_id': getNextSequence("flowId"),
+            'Src_MAC': src_mac,
+            'Dst_MAC': dst_mac,
+            'Src_IP': src_ip,
+            'Dst_IP': dst_ip,
+            'Src_port': src_port,
+            'Dst_port': dst_port,
+            'Protocol': protocol,
+            'Switch_ID': swId,
+            'Switch_port': port,
+            'Src_User_ID': src_user,
+            'Dst_User_ID': dst_user,
+            'Src_access_sw': src_swId,
+            'Src_access_port': src_port,
+            'Dst_access_sw': dst_swId,
+            'Dst_access_port': dst_port,
+            'Date': data,
+            'Time': time,
+            'Bytes': 0
+        })
+
+    return "finish"
+
+def getNextSequence(flowId):
+    # $inc: increase
+    counters.update_one({ '_id': flowId }, {'$inc': { 'seq': 1 }}, upsert=True)
+    result = counters.find_one({ '_id': flowId })
+    return result['seq']
 
 if  __name__  ==  '__main__' : 
     app.run ( host = '0.0.0.0', port = 5000, debug = True )

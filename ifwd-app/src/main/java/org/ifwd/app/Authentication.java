@@ -3,9 +3,6 @@ package org.ifwd.app;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.onlab.packet.IPv4;
-import org.onosproject.net.PortNumber;
-import org.onosproject.net.DeviceId;
-import org.apache.commons.lang3.time.DateUtils;
 
 import org.json.*;
 import java.util.*;
@@ -37,7 +34,6 @@ public class Authentication {
     private String in_port;
 
     private String time;
-    private Long bytes;
 
     private String src_user = "";
     private String dst_user = "";
@@ -48,6 +44,8 @@ public class Authentication {
 
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     DateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
+
+    DateFormat dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     private String accessDbUrl = "http://127.0.0.1:5000";
 
@@ -111,6 +109,7 @@ public class Authentication {
             }
         }
 
+        updateIp();
         insertAssociation();
         return result;
     }
@@ -120,19 +119,17 @@ public class Authentication {
             String date = dateFormat.format(new Date(Long.valueOf(this.time)));
             String time = timeFormat.format(new Date(Long.valueOf(this.time)));
 
-            String s_url = accessDbUrl + "/insert_asso?src_mac=" + src_mac + "&dst_mac=" + dst_mac + 
+            String s_url = accessDbUrl + "/insertFlow?src_mac=" + src_mac + "&dst_mac=" + dst_mac + 
                 "&src_ip=" + src_ip + "&dst_ip=" + dst_ip + "&src_port=" + src_port + "&dst_port=" + dst_port + 
-                "&protocol=" + protocol + "&src_user=" + src_user + "&dst_user=" + dst_user + "&in_sw=" + in_sw + 
-                "&in_port=" + in_port + "&date=" + date + "&time=" + time + "&src_access_sw=" + src_access_sw + 
-                "&src_access_port=" + src_access_port + "&dst_access_sw=" + dst_access_sw + 
-                "&dst_access_port=" + dst_access_port;
+                "&protocol=" + protocol + "&src_user=" + src_user + "&dst_user=" + dst_user + "&swId=" + in_sw + 
+                "&port=" + in_port + "&date=" + date + "&time=" + time + "&src_swId=" + src_access_sw + 
+                "&src_port=" + src_access_port + "&dst_swId=" + dst_access_sw + "&dst_port=" + dst_access_port;
 
             s_url = s_url.replace(" ","%20");
             URL url = new URL(s_url);
             URLConnection yc = url.openConnection();
             BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 
-            String inputLine = in.readLine();
             in.close();
         }
         catch (Exception e) {
@@ -146,14 +143,13 @@ public class Authentication {
         try {
             String s_url = accessDbUrl + "/update_bytes?src_mac=" + src_mac + "&dst_mac=" + dst_mac + 
                 "&src_ip=" + src_ip + "&dst_ip=" + dst_ip + "&src_port=" + src_port + "&dst_port=" + dst_port + 
-                "&protocol=" + protocol + "&in_sw=" + in_sw + "&in_port=" + in_port + "&bytes=" + bytes;
+                "&protocol=" + protocol + "&swId=" + in_sw + "&port=" + in_port + "&bytes=" + bytes;
 
             s_url = s_url.replace(" ","%20");
             URL url = new URL(s_url);
             URLConnection yc = url.openConnection();
             BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 
-            String inputLine = in.readLine();
             in.close();
         }
         catch (Exception e) {
@@ -194,14 +190,14 @@ public class Authentication {
 			String inputLine = in.readLine();
 			in.close();
 
-            String nowTime = dateFormat.format(new Date(Long.valueOf(this.time)));
+            String nowTime = dateTimeFormat.format(new Date(Long.valueOf(this.time)));
 
             String s_url;
 
             if(!inputLine.equals("empty"))
-                s_url = accessDbUrl + "/update_ip?ip=" + src_ip + "&mac=" + src_mac;           
+                s_url = accessDbUrl + "/update_ip?ip=" + src_ip + "&mac=" + src_mac + "&time=" + nowTime;           
             else
-                s_url = accessDbUrl + "/insert_ip?ip=" + src_ip + "&mac=" + src_mac;
+                s_url = accessDbUrl + "/insert_ip?ip=" + src_ip + "&mac=" + src_mac + "&time=" + nowTime;
             
             s_url = s_url.replace(" ","%20");
             url = new URL(s_url);
@@ -223,7 +219,6 @@ public class Authentication {
                 URLConnection yc = url.openConnection();
                 BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 
-                String inputLine = in.readLine();
                 in.close();
             }
         }

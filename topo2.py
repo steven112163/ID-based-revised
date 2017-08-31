@@ -40,15 +40,15 @@ class MyTopo( Topo ):
         self.addLink(s1, portal, port1=2)
         self.addLink(s1, dhcp, port1=3)
 
-        self.addLink(s1, s2, port1=4, port2=1, bw=10000) #Mbps
+        self.addLink(s1, s2, port1=4, port2=1) # bw=10000Mbps
 
-        self.addLink(s2, s3, port1=2, port2=1, bw=10000)
-        self.addLink(s2, s4, port1=3, port2=1, bw=10000)
+        self.addLink(s2, s3, port1=2, port2=1) # bw=10000Mbps
+        self.addLink(s2, s4, port1=3, port2=1) # bw=10000Mbps
 
-        self.addLink(s3, s5, port1=2, port2=1, bw=1000)
-        self.addLink(s3, s6, port1=3, port2=1, bw=1000)
-        self.addLink(s4, s7, port1=2, port2=1, bw=1000)
-        self.addLink(s4, s8, port1=3, port2=1, bw=1000)
+        self.addLink(s3, s5, port1=2, port2=1) # bw=1000Mbps
+        self.addLink(s3, s6, port1=3, port2=1) # bw=1000Mbps
+        self.addLink(s4, s7, port1=2, port2=1) # bw=1000Mbps
+        self.addLink(s4, s8, port1=3, port2=1) # bw=1000Mbps
 
         self.addLink(s5, h1, port1=2)
         self.addLink(s5, h2, port1=3)
