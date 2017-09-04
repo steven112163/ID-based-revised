@@ -102,6 +102,61 @@ def macToUser():
 
     return json.dumps(row)
 
+@app.route ( '/userToMac',  methods = [ 'GET' ]) 
+def userToMac(): 
+    user_id = request.args.get('user_id')
+
+    cursor.execute("SELECT MAC FROM Registered_MAC WHERE User_ID='" + user_id + "' AND Enable = 1")
+    result = cursor.fetchall()
+    columns_name = [d[0] for d in cursor.description]
+
+    result_list = []
+  
+    for row in result:
+        result_list.append(dict(zip(columns_name, row)))
+
+    return json.dumps(result_list)
+
+@app.route ( '/groupToMac',  methods = [ 'GET' ]) 
+def groupToMac(): 
+    group_id = request.args.get('group_id')
+
+    cursor.execute("SELECT MAC FROM Registered_MAC WHERE Group_ID='" + group_id + "' AND Enable = 1")
+    result = cursor.fetchall()
+    columns_name = [d[0] for d in cursor.description]
+
+    result_list = []
+  
+    for row in result:
+        result_list.append(dict(zip(columns_name, row)))
+
+    return json.dumps(result_list)
+
+@app.route ( '/insertACL',  methods = [ 'GET' ])
+def insertACL():
+    acl_id = request.args.get('acl_id')
+    src_attr = request.args.get('src_attr')
+    src_id = request.args.get('src_id')
+    ip = request.args.get('ip')
+    port = request.args.get('port')
+    proto_type = request.args.get('proto_type')
+    permission = request.args.get('permission')
+    priority = request.args.get('priority')
+
+    cursor.execute("INSERT INTO Access_control (ACL_ID, Src_attr, Src_ID, Dst_IP, Dst_Port, Protocol, Permission, Priority) VALUES ('" + acl_id + "', '" + src_attr + "', '" + src_id + "', '" + ip + "', '" + port + "', '" + proto_type + "', '" + permission + "', '" + priority + "')")
+    conn.commit()
+
+    return "finish"
+
+@app.route ( '/removeACL',  methods = [ 'GET' ]) 
+def removeACL(): 
+    acl_id = request.args.get('acl_id')
+
+    cursor.execute("DELETE FROM Access_control WHERE ACL_ID='" + acl_id + "'")
+    conn.commit()
+
+    return "finish"
+
 @app.route ( '/swToLocation',  methods = [ 'GET' ]) 
 def swToLocation(): 
     sw = request.args.get('sw')

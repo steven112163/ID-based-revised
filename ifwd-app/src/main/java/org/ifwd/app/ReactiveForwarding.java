@@ -101,7 +101,7 @@ import java.text.*;
 public class ReactiveForwarding {
 
     private static final int FORWARD_TIMEOUT = 10;
-    private static final int FORWARD_PRIORITY = 10;
+    private static final int FORWARD_PRIORITY = 20;
     private static final int DEFAULT_PRIORITY = 40001;
 
     private final Logger log = getLogger(getClass());
@@ -147,7 +147,7 @@ public class ReactiveForwarding {
 
     @Property(name = "flowPriority", intValue = FORWARD_PRIORITY,
             label = "Configure Flow Priority for installed flow rules; " +
-                    "default is 10")
+                    "default is 20")
     private int flowPriority = FORWARD_PRIORITY;
 
     @Property(name = "defaultPriority", intValue = DEFAULT_PRIORITY,

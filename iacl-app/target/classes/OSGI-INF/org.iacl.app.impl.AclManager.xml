@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" immediate="true" name="org.iacl.app.impl.AclManager" activate="activate" deactivate="deactivate">
+    <implementation class="org.iacl.app.impl.AclManager"/>
+    <service servicefactory="false">
+        <provide interface="org.iacl.app.AclService"/>
+    </service>
+    <property name="service.pid" value="org.iacl.app.impl.AclManager"/>
+    <reference name="coreService" interface="org.onosproject.core.CoreService" cardinality="1..1" policy="static" bind="bindCoreService" unbind="unbindCoreService"/>
+    <reference name="flowRuleService" interface="org.onosproject.net.flow.FlowRuleService" cardinality="1..1" policy="static" bind="bindFlowRuleService" unbind="unbindFlowRuleService"/>
+    <reference name="hostService" interface="org.onosproject.net.host.HostService" cardinality="1..1" policy="static" bind="bindHostService" unbind="unbindHostService"/>
+    <reference name="mastershipService" interface="org.onosproject.mastership.MastershipService" cardinality="1..1" policy="static" bind="bindMastershipService" unbind="unbindMastershipService"/>
+</scr:component>
