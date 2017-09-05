@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.onosproject.rest.AbstractWebResource;
+import org.onlab.packet.MacAddress;
 import org.onlab.packet.IPv4;
 import org.onlab.packet.Ip4Prefix;
 import org.slf4j.Logger;
@@ -108,19 +109,48 @@ public class AclWebResource extends AbstractWebResource {
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response addAclRule(InputStream stream) throws Exception{
+    public Response addAclRule(InputStream stream) throws URISyntaxException {
         AclRule newRule = jsonToRule(stream);
+        get(AclService.class).addAclRule(newRule);
+        return Response.created(new URI(newRule.aclId().toString())).build();
+        /*
         return get(AclService.class).addAclRule(newRule) ?
                 Response.created(new URI(newRule.aclId().toString())).build() :
                 Response.serverError().build();
+        */
     }
 
     @DELETE
     @Path("{aclId}")
-    public Response removeAclRule(@PathParam("aclId") String aclId) throws Exception{
+    public Response removeAclRule(@PathParam("aclId") String aclId) {
         RuleId ruleId = new RuleId(Long.parseLong(aclId.substring(2), 16));
         get(AclService.class).removeAclRule(ruleId);
         return Response.noContent().build();
+    }
+
+    @POST
+    @Path("authSuccess")
+    @Consumes(MediaType.APPLICATION_JSON)
+     public Response userAuthSuccess(InputStream stream) throws URISyntaxException {
+        log.info("userAuthSuccess");
+        JsonNode node;
+
+        try {
+            node = mapper().readTree(stream);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("userAuthSuccess exception", e);
+        }
+
+        MacAddress mac = MacAddress.valueOf(node.path("mac").asText(null));
+        String userId = node.path("userId").asText(null);
+        String groupId = node.path("groupId").asText(null);
+
+        log.info("mac = {}", mac);
+        log.info("userId = {}", userId);
+        log.info("groupId = {}", groupId);
+
+        get(AclService.class).checkAclRule(mac, userId, groupId);
+        return Response.ok().build();
     }
 
     private AclRule jsonToRule(InputStream stream) {

@@ -1,12 +1,15 @@
 package org.iacl.app;
 
+import org.onlab.packet.MacAddress;
 import java.util.*;
 
 public interface AclService {
 
     List<AclRule> getAclRules();
 
-    boolean addAclRule(AclRule rule) throws Exception;
+    void addAclRule(AclRule rule);
 
-    void removeAclRule(RuleId ruleId) throws Exception;
+    void removeAclRule(RuleId ruleId);
+
+    void checkAclRule(MacAddress mac, String userId, String groupId);
 }

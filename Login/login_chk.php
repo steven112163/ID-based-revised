@@ -43,6 +43,20 @@ else{
     else{
         $sql = 'UPDATE Registered_MAC SET Enable=true, User_ID = "'.$user_id.'", Group_ID = "'.$group_id.'" WHERE MAC= "'.$mac.'"';
         $result = mysql_query($sql);
+
+        $data = array("mac" => $mac, "userId" => $user_id, "groupId" => $group_id);
+        $data_json = json_encode($data);
+        $header = array('Content-Type: application/json', 'Accept: application/json');
+
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, 'http://192.168.44.128:8181/onos/iacl-app/acl/authSuccess');
+        curl_setopt($curl, CURLOPT_USERPWD, 'onos:rocks');
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+        curl_setopt($curl, CURLOPT_POST, 1);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $data_json);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_exec($curl);
+        curl_close($curl);
             
         echo 'success';
     }

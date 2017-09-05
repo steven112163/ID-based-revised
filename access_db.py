@@ -102,6 +102,22 @@ def macToUser():
 
     return json.dumps(row)
 
+@app.route ( '/macToUG',  methods = [ 'GET' ]) 
+def macToUG(): 
+    mac = request.args.get('mac')
+
+    cursor.execute("SELECT User_ID, Group_ID FROM Registered_MAC WHERE MAC='" + mac + "' AND Enable = 1")
+    result = cursor.fetchall()
+    columns_name = [d[0] for d in cursor.description]
+
+    if not result:
+        return "empty"
+    else:
+	    for row in result:
+	        row = dict(zip(columns_name, row))
+
+    return json.dumps(row)
+
 @app.route ( '/userToMac',  methods = [ 'GET' ]) 
 def userToMac(): 
     user_id = request.args.get('user_id')
@@ -156,6 +172,19 @@ def removeACL():
     conn.commit()
 
     return "finish"
+
+@app.route ( '/getAcl',  methods = [ 'GET' ]) 
+def getAcl(): 
+    cursor.execute("SELECT * FROM Access_control")
+    result = cursor.fetchall()
+    columns_name = [d[0] for d in cursor.description]
+
+    result_list = []
+   
+    for row in result:
+        result_list.append(dict(zip(columns_name, row)))
+
+    return json.dumps(result_list)
 
 @app.route ( '/swToLocation',  methods = [ 'GET' ]) 
 def swToLocation(): 

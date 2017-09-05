@@ -42,10 +42,11 @@ public final class AclRule {
         this.priority = 0;
     }
 
-    private AclRule(String srcAttr, String srcId, Ip4Prefix dstIp, short dstPort, byte protocol, Action action, int priority) {
+    private AclRule(Long aclId, String srcAttr, String srcId, Ip4Prefix dstIp, short dstPort, byte protocol, Action action, int priority) {
 
-        checkState(idGenerator != null, "Id generator is not bound.");
-        this.aclId = RuleId.valueOf(idGenerator.getNewId());
+        //checkState(idGenerator != null, "Id generator is not bound.");
+        //this.aclId = RuleId.valueOf(idGenerator.getNewId());
+        this.aclId = RuleId.valueOf(aclId);
         this.srcAttr = srcAttr;
         this.srcId = srcId;
         this.dstIp = dstIp;
@@ -90,6 +91,7 @@ public final class AclRule {
 
     public static final class Builder {
         
+        private Long aclId = null;
         private String srcAttr = null;
         private String srcId = null;
         private Ip4Prefix dstIp = null;
@@ -100,6 +102,12 @@ public final class AclRule {
         
         private Builder() {
             // Hide constructor
+        }
+
+        public Builder aclId(Long aclId) {
+            this.aclId = aclId;
+
+            return this;
         }
 
         public Builder srcAttr(String srcAttr) {
@@ -147,7 +155,12 @@ public final class AclRule {
             checkState(protocol == 0 || protocol == IPv4.PROTOCOL_ICMP || protocol == IPv4.PROTOCOL_TCP || protocol == IPv4.PROTOCOL_UDP,
                        "protocol must be assigned to TCP, UDP, or ICMP.");
             checkState(priority >= 0 && priority <=9, "Range of priority is 0~9.");
-            return new AclRule(srcAttr, srcId, dstIp, dstPort, protocol, action, priority);
+            if(aclId == null) {
+                checkState(idGenerator != null, "Id generator is not bound.");
+                aclId = idGenerator.getNewId();
+            }
+
+            return new AclRule(aclId, srcAttr, srcId, dstIp, dstPort, protocol, action, priority);
         }
     }
 

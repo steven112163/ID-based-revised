@@ -47,6 +47,8 @@ import org.onosproject.net.DeviceId;
 import org.onosproject.net.Host;
 import org.onosproject.net.MastershipRole;
 import org.onosproject.net.PortNumber;
+import org.onosproject.net.flow.criteria.Criterion;
+import org.onosproject.net.flow.criteria.EthCriterion;
 import org.onosproject.net.flow.DefaultFlowEntry;
 import org.onosproject.net.flow.DefaultTrafficSelector;
 import org.onosproject.net.flow.DefaultTrafficTreatment;
@@ -108,7 +110,7 @@ public class AclManager implements AclService {
         
         ruleMap = new HashMap<>();
         aclToFlow = new HashMap<>();
-        //loadAcl();
+        loadAcl();
     }
 
     @Deactivate
@@ -119,6 +121,81 @@ public class AclManager implements AclService {
 
         aclToFlow.clear();
         ruleMap.clear();
+    }
+
+    private void loadAcl() {
+        try {
+            URL url = new URL(accessDbUrl + "/getAcl");	
+            URLConnection yc = url.openConnection();
+            BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
+
+            String inputLine = in.readLine();
+            in.close();
+
+            JSONArray j = new JSONArray(inputLine);
+
+            for(int i=0; i<j.length(); i++) {
+                JSONObject k = j.getJSONObject(i);
+
+                AclRule.Builder rule = AclRule.builder();
+
+                String s = k.getString("ACL_ID");
+                if (s != null) {
+                    rule.aclId(Long.decode(s));
+                }
+
+                s = k.getString("Src_attr");
+                if (s != null) {
+                    rule.srcAttr(s);
+                }
+
+                s = k.getString("Src_ID");
+                if (s != null) {
+                    rule.srcId(s);
+                }
+
+                s = k.getString("Dst_IP");
+                if (s != null) {
+                    rule.dstIp(Ip4Prefix.valueOf(s));
+                }
+
+                s = k.getString("Protocol");
+                if (s != null) {
+                    if ("TCP".equalsIgnoreCase(s)) {
+                        rule.protocol(IPv4.PROTOCOL_TCP);
+                    } else if ("UDP".equalsIgnoreCase(s)) {
+                        rule.protocol(IPv4.PROTOCOL_UDP);
+                    } else if ("ICMP".equalsIgnoreCase(s)) {
+                        rule.protocol(IPv4.PROTOCOL_ICMP);
+                    }
+                }
+
+                s = k.getString("Dst_port");
+                if (s != null) {
+                    rule.dstPort(Short.valueOf(s));
+                }
+
+                s = k.getInt("Permission") == 1 ? "Allow" : "Deny";
+                if (s != null) {
+                    if ("allow".equalsIgnoreCase(s)) {
+                        rule.action(AclRule.Action.ALLOW);
+                    } else if ("deny".equalsIgnoreCase(s)) {
+                        rule.action(AclRule.Action.DENY);
+                    }
+                }
+
+                int priority = k.getInt("Priority");
+                rule.priority(priority);
+
+                AclRule aclRule = rule.build();
+
+                ruleMap.put(aclRule.aclId(), aclRule);
+                enforceRuleAdding(aclRule);
+            }
+        }
+        catch(Exception e) {
+            return;
+        }
     }
 
     
@@ -142,9 +219,9 @@ public class AclManager implements AclService {
     }
     
     @Override
-    public boolean addAclRule(AclRule rule) throws Exception {
+    public void addAclRule(AclRule rule) {
         if (matchCheck(rule)) {
-            return false;
+            return;
         }
 
 
@@ -153,53 +230,53 @@ public class AclManager implements AclService {
 
         //if (rule.action() != AclRule.Action.ALLOW) {
         enforceRuleAdding(rule);
+        insertACL(rule);
         //}
-        return true;
     }
 
-    private void enforceRuleAdding(AclRule rule) throws Exception {
+    private void enforceRuleAdding(AclRule rule) {
         Map<MacAddress, DeviceId> dpidSet = new HashMap<>();
 
-        URL url = null;
-
         try {
+            URL url = null;
+
             if(rule.srcAttr().equalsIgnoreCase("User"))
                 url = new URL(accessDbUrl + "/userToMac?user_id=" + rule.srcId());	
             else if(rule.srcAttr().equalsIgnoreCase("Group"))
                 url = new URL(accessDbUrl + "/groupToMac?group_id=" + rule.srcId());
+
+            URLConnection yc = url.openConnection();
+            BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
+            String inputLine = in.readLine();
+            in.close();
+
+            JSONArray j = new JSONArray(inputLine);
+
+            for(int i=0; i<j.length(); i++) {
+                JSONObject k = j.getJSONObject(i);
+                MacAddress mac = MacAddress.valueOf(k.getString("MAC"));
+
+                HostId srcId = HostId.hostId(mac);
+                Host src = hostService.getHost(srcId);
+                if(src != null) {
+                    dpidSet.put(mac, src.location().deviceId());
+                }
+            }
+
+            flowSet = new HashSet<>();
+
+            for(MacAddress mac : dpidSet.keySet()) {
+                generateAclFlow(rule, mac, dpidSet.get(mac));
+            }
+
+            aclToFlow.put(rule.aclId(), flowSet);
+
+            //insertACL(rule);
         }
         catch(Exception e){
-            throw new Exception("enforceRuleAdding exception");
-        }
-
-        URLConnection yc = url.openConnection();
-        BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
-        String inputLine = in.readLine();
-        in.close();
-
-        JSONArray j = new JSONArray(inputLine);
-        //String[] mac = new String[j.length()];
-
-        for(int i=0; i<j.length(); i++) {
-            JSONObject k = j.getJSONObject(i);
-            MacAddress mac = MacAddress.valueOf(k.getString("MAC"));
-
-            HostId srcId = HostId.hostId(mac);
-            Host src = hostService.getHost(srcId);
-            if(src != null) {
-                dpidSet.put(mac, src.location().deviceId());
-            }
-        }
-
-        flowSet = new HashSet<>();
-
-        for(MacAddress mac : dpidSet.keySet()) {
-            generateAclFlow(rule, mac, dpidSet.get(mac));
-        }
-
-        aclToFlow.put(rule.aclId(), flowSet);
-
-        insertACL(rule);
+            log.info("enforceRuleAdding exception: ", e);
+            return;
+        }   
     }
 
     private void generateAclFlow(AclRule rule, MacAddress mac, DeviceId deviceId) {
@@ -250,36 +327,49 @@ public class AclManager implements AclService {
         flowSet.add(flowEntry.build());
     }
 
-    public void insertACL(AclRule rule) throws Exception {
+    public void insertACL(AclRule rule) {
         String s_url = null;
+
+        String protocol = null;
+
+        if (rule.protocol() == IPv4.PROTOCOL_TCP) {
+            protocol = "TCP";
+        } else if (rule.protocol() == IPv4.PROTOCOL_UDP) {
+            protocol = "UDP";
+        } else if (rule.protocol() == IPv4.PROTOCOL_ICMP) {
+            protocol = "ICMP";
+        }
 
         s_url = accessDbUrl + "/insertACL?acl_id=" + rule.aclId() + "&src_attr=" + rule.srcAttr() + 
                 "&src_id=" + rule.srcId() + "&ip=" + rule.dstIp() + "&port=" + rule.dstPort() + 
-                "&proto_type=" + rule.protocol() + "&permission=" + rule.action() + "&priority=" + rule.priority();
+                "&proto_type=" + protocol + "&permission=" + rule.action() + "&priority=" + rule.priority();
             
         s_url = s_url.replace(" ","%20");
         
         URL url = null;
         try {
             url = new URL(s_url);
+
+            URLConnection yc = url.openConnection();
+            BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
+
+            in.close();
         }
         catch(Exception e) {
-            throw new Exception("insertACL exception");
+            log.info("insertACL exception: ", e);
+            return;
         }
 
-        URLConnection yc = url.openConnection();
-        BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
-
-        in.close();
+        
     }
     
     @Override
-    public void removeAclRule(RuleId ruleId) throws Exception {
+    public void removeAclRule(RuleId ruleId) {
         log.info("ACL rule(id:{}) is removed.", ruleId);
         enforceRuleRemoving(ruleId);
     }
 
-    private void enforceRuleRemoving(RuleId aclId) throws Exception {
+    private void enforceRuleRemoving(RuleId aclId) {
         Set<FlowRule> flowSet = aclToFlow.get(aclId);
 
         if (flowSet != null) {
@@ -295,38 +385,167 @@ public class AclManager implements AclService {
         removeACL(aclId);
     }
 
-    public void removeACL(RuleId aclId) throws Exception {       
-        URL url = null;
+    public void removeACL(RuleId aclId) {       
         try {
-            url = new URL(accessDbUrl + "/removeACL?acl_id=" + aclId);	
-        }
-        catch(Exception e) {
-            throw new Exception("removeACL exception");
-        }
-
-        URLConnection yc = url.openConnection();
-        BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
+            URL url = new URL(accessDbUrl + "/removeACL?acl_id=" + aclId);	
+            URLConnection yc = url.openConnection();
+            BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 
         in.close();
+        }
+        catch(Exception e) {
+            log.info("removeACL exception: ", e);
+            return;
+        }   
+    }
+
+    public void checkAclRule(MacAddress mac, String userId, String groupId) {
+        for (AclRule rule : getAclRules()) {
+            if((rule.srcAttr().equalsIgnoreCase("User") && rule.srcId().equalsIgnoreCase(userId)) || 
+               (rule.srcAttr().equalsIgnoreCase("Group") && rule.srcId().equalsIgnoreCase(groupId))) {
+                flowSet = aclToFlow.get(rule.aclId());
+                HostId srcId = HostId.hostId(mac);
+                Host src = hostService.getHost(srcId);
+                if(src != null) {
+                    generateAclFlow(rule, mac, src.location().deviceId());
+                }
+                aclToFlow.put(rule.aclId(), flowSet);
+            }
+        }
     }
     
     private class InternalHostListener implements HostListener {
-        @Override
-        public void event(HostEvent event) {
-            // if a new host appears and an existing rule denies
-            // its traffic, a new ACL flow rule is generated.
-            /*
-            if (event.type() == HostEvent.Type.HOST_ADDED) {
-                DeviceId deviceId = event.subject().location().deviceId();
-                if (mastershipService.getLocalRole(deviceId) == MastershipRole.MASTER) {
-                    for (AclRule rule : aclStore.getAclRules()) {
-                        if (rule.action() != AclRule.Action.ALLOW) {
-                            processHostAddedEvent(event, rule);
+        public JSONObject macToUG(MacAddress mac) {
+            try {
+                URL url = new URL(accessDbUrl + "/macToUG?mac=" + mac.toString());
+
+                URLConnection yc = url.openConnection();
+                BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
+
+                String inputLine = in.readLine();
+                in.close();
+
+                if(!inputLine.equals("empty"))
+                    return new JSONObject(inputLine);
+            }
+            catch(Exception e){
+                log.info("macToUG exception: ", e);
+            }
+      
+            return null;
+        }
+
+        private void processHostAddedEvent(AclRule rule, DeviceId deviceId, MacAddress mac) {
+            JSONObject j = macToUG(mac);
+            String userId = null;
+            String groupId = null;
+
+            try {
+                userId = j.getString("User_ID");
+                groupId = j.getString("Group_ID");
+            }
+            catch(Exception e){
+                log.info("processHostAddedEvent exception: ", e);
+            }
+
+            if((rule.srcAttr().equalsIgnoreCase("User") && rule.srcId().equalsIgnoreCase(userId)) || 
+               (rule.srcAttr().equalsIgnoreCase("Group") && rule.srcId().equalsIgnoreCase(groupId))) {
+                flowSet = aclToFlow.get(rule.aclId());
+                generateAclFlow(rule, mac, deviceId);
+                aclToFlow.put(rule.aclId(), flowSet);
+            }
+        }
+
+        private void processHostRemovedEvent(DeviceId deviceId, MacAddress mac) {
+            log.info("processHostRemovedEvent");
+            Iterable<FlowEntry> flowSet = flowRuleService.getFlowEntries(deviceId);
+            Iterator<FlowEntry> flowIt = flowSet.iterator();
+
+            while(flowIt.hasNext()) {
+                FlowRule flowRule = flowIt.next();
+                TrafficSelector selector = flowRule.selector();
+                MacAddress srcMac;
+                try{
+                    srcMac = ((EthCriterion)selector.getCriterion(Criterion.Type.ETH_SRC)).mac();
+                }
+                catch(NullPointerException e) {
+                    log.info("processHostRemovedEvent NullPointerException: ", e);
+                    continue;
+                }
+
+                if(flowRule.isPermanent() && srcMac.toString().equalsIgnoreCase(mac.toString())) {
+                    flowRuleService.removeFlowRules(flowRule);
+                }
+            }
+        }
+
+        private void processHostMovedEvent(DeviceId oldDeviceId, DeviceId newDeviceId, MacAddress mac) {
+            Iterable<FlowEntry> flowSet = flowRuleService.getFlowEntries(oldDeviceId);
+            FlowEntry.Builder flowEntry = DefaultFlowEntry.builder();
+
+            Iterator<FlowEntry> flowIt = flowSet.iterator();
+            while(flowIt.hasNext()) {
+                FlowRule flowRule = flowIt.next();
+ 
+                TrafficSelector selector = flowRule.selector();
+                MacAddress srcMac;
+                try{
+                    srcMac = ((EthCriterion)selector.getCriterion(Criterion.Type.ETH_SRC)).mac();
+                }
+                catch(NullPointerException e) {
+                    log.info("processHostMovedEvent NullPointerException: ", e);
+                    continue;
+                }
+
+                if(flowRule.isPermanent() && srcMac.toString().equalsIgnoreCase(mac.toString())) {
+                    flowRuleService.removeFlowRules(flowRule);
+
+                    flowEntry.forDevice(newDeviceId);
+                    flowEntry.withPriority(flowRule.priority());
+                    flowEntry.withSelector(selector);
+                    flowEntry.withTreatment(flowRule.treatment());
+                    flowEntry.fromApp(appId);
+                    flowEntry.makePermanent();
+                    // install flow rule
+                    flowRuleService.applyFlowRules(flowEntry.build());
+
+                    for(RuleId aclId : aclToFlow.keySet()) {
+                        if(aclToFlow.get(aclId).contains(flowRule)) {
+                            aclToFlow.get(aclId).remove(flowRule);
+                            aclToFlow.get(aclId).add(flowEntry.build());
                         }
                     }
                 }
             }
-            */
+        }
+
+        @Override
+        public void event(HostEvent event) {
+            DeviceId deviceId;
+            MacAddress mac;
+
+            switch(event.type()) {
+                case HOST_ADDED:
+                    deviceId = event.subject().location().deviceId();
+                    mac = event.subject().mac();
+                    for (AclRule rule : getAclRules()) {
+                        processHostAddedEvent(rule, deviceId, mac);
+                    }
+                    break;
+                case HOST_REMOVED:
+                    deviceId = event.subject().location().deviceId();
+                    mac = event.subject().mac();
+                    processHostRemovedEvent(deviceId, mac);
+                    break;
+                case HOST_MOVED:
+                    DeviceId newDeviceId = event.subject().location().deviceId();
+                    DeviceId oldDeviceId = event.prevSubject().location().deviceId();
+                    mac = event.subject().mac();
+                    processHostMovedEvent(oldDeviceId, newDeviceId, mac);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }

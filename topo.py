@@ -22,6 +22,7 @@ class MyTopo( Topo ):
         h6 = self.addHost('h6', ip='0.0.0.0', mac='ea:e9:78:fb:fd:06')
         h7 = self.addHost('h7', ip='0.0.0.0', mac='ea:e9:78:fb:fd:07')
         h8 = self.addHost('h8', ip='0.0.0.0', mac='ea:e9:78:fb:fd:08')
+        h9 = self.addHost('h9', ip='192.168.44.199', mac='ea:e9:78:fb:fd:01')
 
         web = self.addHost('web', ip='192.168.44.101/24', mac='ea:e9:78:fb:fd:00')
         portal = self.addHost('portal', ip='192.168.44.200/24', mac='ea:e9:78:fb:fd:2d')
@@ -61,6 +62,7 @@ class MyTopo( Topo ):
 
         self.addLink(s8, h7, port1=2)
         self.addLink(s8, h8, port1=3)
+        self.addLink(s8, h9, port1=4)
 
 
 def run():
@@ -74,6 +76,9 @@ def run():
     root.setIP( '192.168.44.100/32', intf=intf )
 
     net.start()
+    s8 = net.getNodeByName('s8')
+    h9 = net.getNodeByName('h9')
+    net.configLinkStatus(s8, h9, 'down')
 
     print("=== Run apache server ===")
     portal = net.getNodeByName('portal')
@@ -85,7 +90,7 @@ def run():
 
     print("=== Request IP ===")
     for host in net.hosts:
-        if str(host) != 'portal' and str(host) != 'dhcp' and str(host) != 'web':
+        if str(host) != 'portal' and str(host) != 'dhcp' and str(host) != 'web' and str(host) != 'h9':
             host.cmdPrint('dhclient ' + host.defaultIntf().name)
 
     print("=== Open simple HTTP server ===")
