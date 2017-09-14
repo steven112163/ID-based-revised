@@ -610,13 +610,14 @@ public class ReactiveForwarding {
             }
         }
 
-        //Long queue = bandwidthAllocationService.getQueue(context.inPacket().receivedFrom().deviceId(), 
-            //portNumber, inPkt.getSourceMAC(), inPkt.getDestinationMAC());
+        Long queue = bandwidthAllocationService.getQueue(context.inPacket().receivedFrom().deviceId(), 
+            portNumber, inPkt.getSourceMAC(), inPkt.getDestinationMAC());
 
         TrafficTreatment.Builder treatmentBuilder = DefaultTrafficTreatment.builder();
 
-        //if(queue != null && queue >=0)
-            //treatmentBuilder.setQueue(queue);
+        if(queue != Long.valueOf(-1)) {
+            treatmentBuilder.setQueue(queue);
+        }
         
         treatmentBuilder.setOutput(portNumber);
 

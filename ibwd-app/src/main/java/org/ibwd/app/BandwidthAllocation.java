@@ -430,6 +430,8 @@ public class BandwidthAllocation implements BandwidthAllocationService{
         while(it.hasNext()) {
             swType.put(DeviceId.deviceId(it.next()), SERVER_SW);
         }
+
+        log.info("swType = {}", swType);
     }
 
     private void setQueue() {
@@ -468,7 +470,10 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                                 String srcPortName = deviceService.getPort(srcSwId, srcPort).annotations().value("portName");
                                 String dstPortName = deviceService.getPort(dstSwId, dstPort).annotations().value("portName");
                                 
-                                Long bandwidth = Long.valueOf(link.annotations().value("bandwidth"));
+                                Long bandwidth = (link.annotations().value("bandwidth") == null) ? null : Long.valueOf(link.annotations().value("bandwidth"));
+
+                                if(bandwidth == null)
+                                    continue;
 
                                 Map<Long, QueueDescription> queues = new HashMap<>();
 
@@ -582,7 +587,10 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                                 String srcPortName = deviceService.getPort(srcSwId, srcPort).annotations().value("portName");
                                 String dstPortName = deviceService.getPort(dstSwId, dstPort).annotations().value("portName");
                                 
-                                Long bandwidth = Long.valueOf(link.annotations().value("bandwidth"));
+                                Long bandwidth = (link.annotations().value("bandwidth") == null) ? null : Long.valueOf(link.annotations().value("bandwidth"));
+                                
+                                if(bandwidth == null)
+                                    continue;
 
                                 Map<Long, QueueDescription> queues = new HashMap<>();
 
@@ -680,8 +688,11 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                                 String srcPortName = deviceService.getPort(srcSwId, srcPort).annotations().value("portName");
                                 String dstPortName = deviceService.getPort(dstSwId, dstPort).annotations().value("portName");
                                 
-                                Long bandwidth = Long.valueOf(link.annotations().value("bandwidth"));
+                                Long bandwidth = (link.annotations().value("bandwidth") == null) ? null : Long.valueOf(link.annotations().value("bandwidth"));
 
+                                if(bandwidth == null)
+                                    continue;
+                                    
                                 Map<Long, QueueDescription> queues = new HashMap<>();
 
                                 QueueId queueId = QueueId.queueId(srcPortName+"-queue0");
