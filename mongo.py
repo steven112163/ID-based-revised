@@ -1,10 +1,15 @@
 from pymongo import MongoClient
 from pprint import pprint
 
+week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
 client = MongoClient("mongodb://192.168.44.128:27017/")
 db = client.portal
 collection = db.Flow
 counters = db.counters
+
+db=MySQLdb.connect(host="192.168.44.128", user="root", passwd="root", db="portal")
+cursor = db.cursor()
 
 def getNextSequence(flowId):
     # $inc: increase

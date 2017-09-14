@@ -287,7 +287,7 @@ def update_bytes():
             'Switch_port': port
         },
         update={
-            '$inc': { 'Bytes': int(bytes) }
+            '$inc': { 'Bytes': long(bytes) }
         },
         sort={ '_id': -1 }
     )
@@ -308,9 +308,9 @@ def insertFlow():
     src_user = request.args.get('src_user')
     dst_user = request.args.get('dst_user')
     src_swId = request.args.get('src_swId')
-    src_port = request.args.get('src_port')
+    src_access_port = request.args.get('src_access_port')
     dst_swId = request.args.get('dst_swId')
-    dst_port = request.args.get('dst_port')
+    dst_access_port = request.args.get('dst_access_port')
     data = request.args.get('date')
     time = request.args.get('time')
 
@@ -329,12 +329,12 @@ def insertFlow():
             'Src_User_ID': src_user,
             'Dst_User_ID': dst_user,
             'Src_access_sw': src_swId,
-            'Src_access_port': src_port,
+            'Src_access_port': src_access_port,
             'Dst_access_sw': dst_swId,
-            'Dst_access_port': dst_port,
+            'Dst_access_port': dst_access_port,
             'Date': data,
             'Time': time,
-            'Bytes': 0
+            'Bytes': long(0)
         })
 
     return "finish"

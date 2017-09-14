@@ -153,13 +153,13 @@ public class BandwidthAllocation implements BandwidthAllocationService{
 
     @Activate
     protected void activate() {
-        appId = coreService.registerApplication("fan.band.app");
+        appId = coreService.registerApplication("org.ibwd.app");
         networkConfigService.addListener(configListener);
         deviceService.addListener(deviceListener);
-        log.info("band Started");
-        setupConfiguration();
-        setQueue();
-        timer();
+        log.info("org.ibwd Started", appId.id());
+        //setupConfiguration();
+        //setQueue();
+        //timer();
     }
 
     @Deactivate
@@ -167,7 +167,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
         flowRuleService.removeFlowRulesById(appId);
         networkConfigService.removeListener(configListener);
         deviceService.removeListener(deviceListener);
-        log.info("band Stopped");
+        log.info("org.ibwd Stopped");
 
         Collection<QueueDescription> queues = queueConfig.getQueues();
         Iterator<QueueDescription> it = queues.iterator();
@@ -332,7 +332,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                 return Long.valueOf(-1);
         }
         catch (Exception e) {
-            log.info("userToQueue exception: ", e);			
+            log.info("userToQueue exception: ", e);	
         }
 
         return Long.valueOf(-1); 
@@ -772,8 +772,8 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                 case DEVICE_AVAILABILITY_CHANGED:          
                 case DEVICE_REMOVED:
                 case DEVICE_SUSPENDED:
-                    setQueue();
-                    timer();
+                    //setQueue();
+                    //timer();
                     break;
                 default:
                     break;
@@ -789,9 +789,9 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                     case CONFIG_ADDED:
                     case CONFIG_UPDATED:
                     case CONFIG_REMOVED:
-                        setupConfiguration();
-                        setQueue();
-                        timer();
+                        //setupConfiguration();
+                        //setQueue();
+                        //timer();
                         break;
                     default:
                         break;
@@ -802,9 +802,8 @@ public class BandwidthAllocation implements BandwidthAllocationService{
 
     public class MyJob implements Runnable{
         @Override
-            public void run() {  
-                log.info("MyJob!!!!");      
-                setQueue();
+            public void run() {        
+                //setQueue();
             }
     }
 }

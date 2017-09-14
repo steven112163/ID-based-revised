@@ -435,19 +435,7 @@ public class AclManager implements AclService {
             return null;
         }
 
-        private void processHostAddedEvent(AclRule rule, DeviceId deviceId, MacAddress mac) {
-            JSONObject j = macToUG(mac);
-            String userId = null;
-            String groupId = null;
-
-            try {
-                userId = j.getString("User_ID");
-                groupId = j.getString("Group_ID");
-            }
-            catch(Exception e){
-                log.info("processHostAddedEvent exception: ", e);
-            }
-
+        private void processHostAddedEvent(AclRule rule, DeviceId deviceId, MacAddress mac, String userId, String groupId) {
             if((rule.srcAttr().equalsIgnoreCase("User") && rule.srcId().equalsIgnoreCase(userId)) || 
                (rule.srcAttr().equalsIgnoreCase("Group") && rule.srcId().equalsIgnoreCase(groupId))) {
                 flowSet = aclToFlow.get(rule.aclId());
@@ -528,8 +516,21 @@ public class AclManager implements AclService {
                 case HOST_ADDED:
                     deviceId = event.subject().location().deviceId();
                     mac = event.subject().mac();
+
+                    JSONObject j = macToUG(mac);
+                    String userId = null;
+                    String groupId = null;
+
+                    try {
+                        userId = j.getString("User_ID");
+                        groupId = j.getString("Group_ID");
+                    }
+                    catch(Exception e){
+                        log.info("HOST_ADDED exception: ", e);
+                    }
+
                     for (AclRule rule : getAclRules()) {
-                        processHostAddedEvent(rule, deviceId, mac);
+                        processHostAddedEvent(rule, deviceId, mac, userId, groupId);
                     }
                     break;
                 case HOST_REMOVED:

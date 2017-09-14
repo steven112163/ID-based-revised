@@ -123,7 +123,7 @@ public class Authentication {
                 "&src_ip=" + src_ip + "&dst_ip=" + dst_ip + "&src_port=" + src_port + "&dst_port=" + dst_port + 
                 "&protocol=" + protocol + "&src_user=" + src_user + "&dst_user=" + dst_user + "&swId=" + in_sw + 
                 "&port=" + in_port + "&date=" + date + "&time=" + time + "&src_swId=" + src_access_sw + 
-                "&src_port=" + src_access_port + "&dst_swId=" + dst_access_sw + "&dst_port=" + dst_access_port;
+                "&src_access_port=" + src_access_port + "&dst_swId=" + dst_access_sw + "&dst_access_port=" + dst_access_port;
 
             s_url = s_url.replace(" ","%20");
             URL url = new URL(s_url);
