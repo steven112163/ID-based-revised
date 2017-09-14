@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Sep 18, 2017 at 02:24 PM
+-- Generation Time: Sep 14, 2017 at 11:13 AM
 -- Server version: 5.5.55-0ubuntu0.14.04.1
 -- PHP Version: 5.5.9-1ubuntu4.21
 
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS `Area_flow` (
   `Time_period` int(11) NOT NULL,
   `Building` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
   `Kbps` double NOT NULL,
-  `Percentage` int(11) NOT NULL,
+  `Percentage` double NOT NULL,
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -59,12 +59,12 @@ CREATE TABLE IF NOT EXISTS `Area_flow` (
 --
 
 INSERT INTO `Area_flow` (`ID`, `Week`, `Time_period`, `Building`, `Kbps`, `Percentage`) VALUES
-(0, 'Fri', 9, 'Building2', 0.0126236979166667, 0),
-(1, 'Fri', 15, 'Building1', 25.3749153645833, 6),
-(2, 'Thu', 10, 'Building1', 428.477140694282, 94),
-(3, 'Thu', 12, 'Building1', 0.0232345920138889, 0),
-(4, 'Thu', 12, 'Building2', 0.00958116319444445, 0),
-(5, 'Tue', 13, 'Building2', 0.01205078125, 0);
+(0, 'Fri', 9, 'Building2', 65.5554820212341, 100),
+(1, 'Fri', 15, 'Building1', 96.0971593146742, 100),
+(2, 'Thu', 10, 'Building1', 110.485821235996, 100),
+(3, 'Thu', 12, 'Building1', 111.58446409353, 71.3434585359764),
+(4, 'Thu', 12, 'Building2', 44.8201543302618, 28.6565414640236),
+(5, 'Tue', 13, 'Building2', 53.702763671875, 100);
 
 -- --------------------------------------------------------
 
@@ -90,15 +90,15 @@ CREATE TABLE IF NOT EXISTS `Flow_classification` (
 --
 
 INSERT INTO `Flow_classification` (`ID`, `User_ID`, `Week`, `Time_period`, `Building`, `Room`, `Kbps`, `Day_counts`, `Bwd_req`) VALUES
-(0, 'A', 'Fri', 15, 'Building1', 'Room1', 0.0149153645833333, 13, 'Mid'),
-(1, 'A', 'Thu', 10, 'Building1', 'Room1', 428.466405017198, 213, 'High'),
-(2, 'A', 'Thu', 10, 'Building1', 'Room2', 0.0107356770833333, 13, 'High'),
-(3, 'A', 'Thu', 12, 'Building1', 'Room1', 0.0124989149305556, 26, 'High'),
-(4, 'B', 'Fri', 15, 'Building1', 'Room1', 25.36, 400, 'High'),
-(5, 'B', 'Thu', 12, 'Building1', 'Room1', 0.0107356770833333, 13, 'Low'),
-(6, 'F', 'Fri', 9, 'Building2', 'Room2', 0.0126236979166667, 13, 'High'),
-(7, 'F', 'Thu', 12, 'Building2', 'Room2', 0.00958116319444445, 13, 'High'),
-(8, 'F', 'Tue', 13, 'Building2', 'Room2', 0.01205078125, 13, 'High');
+(0, 'A', 'Fri', 15, 'Building1', 'Room1', 70.7355861879006, 26, 'High'),
+(1, 'A', 'Thu', 10, 'Building1', 'Room1', 54.41001419473, 26, 'High'),
+(2, 'A', 'Thu', 10, 'Building1', 'Room2', 56.0758070412661, 26, 'High'),
+(3, 'A', 'Thu', 12, 'Building1', 'Room1', 57.5855801291872, 34, 'High'),
+(4, 'B', 'Fri', 15, 'Building1', 'Room1', 25.3615731267736, 18, 'Mid'),
+(5, 'B', 'Thu', 12, 'Building1', 'Room1', 53.9988839643429, 26, 'Low'),
+(6, 'F', 'Fri', 9, 'Building2', 'Room2', 65.5554820212341, 26, 'High'),
+(7, 'F', 'Thu', 12, 'Building2', 'Room2', 44.8201543302618, 26, 'High'),
+(8, 'F', 'Tue', 13, 'Building2', 'Room2', 53.702763671875, 26, 'High');
 
 -- --------------------------------------------------------
 
@@ -140,12 +140,12 @@ CREATE TABLE IF NOT EXISTS `IP_MAC` (
 --
 
 INSERT INTO `IP_MAC` (`IP`, `MAC`, `Time`) VALUES
-('192.168.44.101', 'EA:E9:78:FB:FD:00', '2017-09-15 09:01:54'),
-('192.168.44.166', 'EA:E9:78:FB:FD:01', '2017-09-14 10:40:46'),
+('192.168.44.101', 'EA:E9:78:FB:FD:00', '2017-09-14 11:09:17'),
+('192.168.44.166', 'EA:E9:78:FB:FD:01', '2017-09-14 11:01:45'),
 ('192.168.44.167', 'EA:E9:78:FB:FD:02', '2017-09-14 12:26:43'),
-('192.168.44.168', 'EA:E9:78:FB:FD:03', '2017-09-14 10:31:40'),
-('192.168.44.169', 'EA:E9:78:FB:FD:04', '2017-09-05 14:55:21'),
-('192.168.44.170', 'EA:E9:78:FB:FD:05', '2017-09-05 15:31:16'),
+('192.168.44.168', 'EA:E9:78:FB:FD:03', '2017-09-14 11:09:17'),
+('192.168.44.169', 'EA:E9:78:FB:FD:04', '2017-09-14 11:37:47'),
+('192.168.44.170', 'EA:E9:78:FB:FD:05', '2017-09-14 11:09:00'),
 ('192.168.44.171', 'EA:E9:78:FB:FD:06', '2017-09-05 15:21:54'),
 ('192.168.44.172', 'EA:E9:78:FB:FD:07', '2017-09-15 09:01:54'),
 ('192.168.44.173', 'EA:E9:78:FB:FD:08', '2017-09-05 15:09:01');
@@ -173,6 +173,8 @@ INSERT INTO `Registered_MAC` (`MAC`, `User_ID`, `Group_ID`, `Enable`) VALUES
 ('EA:E9:78:FB:FD:01', 'A', 'Teacher', 1),
 ('EA:E9:78:FB:FD:02', 'B', 'Teacher', 1),
 ('EA:E9:78:FB:FD:03', 'A', 'Teacher', 1),
+('EA:E9:78:FB:FD:04', 'C', 'Staff', 1),
+('EA:E9:78:FB:FD:05', 'E', 'Student', 1),
 ('EA:E9:78:FB:FD:07', 'F', 'Guest', 1);
 
 -- --------------------------------------------------------
