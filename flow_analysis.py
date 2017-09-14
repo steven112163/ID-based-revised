@@ -39,6 +39,9 @@ def loadFlow():
             data.append([flow['Dst_User_ID'], flow['Date'], flow['Time'], building, room, flow['Bytes']])
 
     allFlow = pd.DataFrame(data, columns=['User', 'Date', 'Time', 'Building', 'Room', 'Bytes'])
+    #allFlow['Bytes'] = allFlow['Bytes'] * 256
+    #allFlow = allFlow.sort(['Date', 'Time'], ascending=[1, 1])
+    #print allFlow.to_string()
     print allFlow
     return allFlow
 
@@ -51,6 +54,8 @@ def calculateAverage(allFlow):
     averageFlow = allFlow.groupby(['User', 'Date', 'TimePeriod', 'Building', 'Room'], as_index=False)['Bytes'].sum()
     averageFlow['Bytes'] = (averageFlow['Bytes']*8)/(3600.0*1024.0)
     averageFlow.columns = ['User', 'Date', 'TimePeriod', 'Building', 'Room', 'Kbps']
+
+    print averageFlow
     
     for i in range(len(averageFlow.index)):
         averageFlow.ix[i,'Week'] = week[datetime.date(int(averageFlow.ix[i,'Date'].split('-')[0]), \
@@ -64,7 +69,7 @@ def calculateAverage(allFlow):
     averageFlow['DayCounts'] = dayCounts['DayCounts']
     averageFlow['Kbps'] = averageFlow['Kbps'] / averageFlow['DayCounts']
 
-    print averageFlow
+    #print averageFlow
     return averageFlow
 
 def loadOldResult(averageFlow):
@@ -98,12 +103,10 @@ def classifyFlow(averageFlow):
     stdError['MeanKbps'] = stdError['Kbps'] / userCounts['UserCounts']
     columns = ['Week', 'TimePeriod', 'Building', 'Room', 'MeanKbps']
     stdError = stdError[columns]
-    #print stdError
 
     for i in range(len(stdError.index)):
         flowFilter = (averageFlow[(averageFlow.Week == stdError.ix[i,'Week']) & (averageFlow.TimePeriod == stdError.ix[i,'TimePeriod']) & \
         (averageFlow.Building == stdError.ix[i,'Building']) & (averageFlow.Room == stdError.ix[i,'Room'])])
-        #print flowFilter
 
         numbers = flowFilter["Kbps"].values.tolist()
         mean = stdError.ix[i,'MeanKbps']
@@ -130,13 +133,15 @@ def classifyFlow(averageFlow):
     tempDataframe['ID'] = tempDataframe.index
     cursor.execute('delete from Flow_classification')
     tempDataframe.to_sql(name='Flow_classification', con=db, if_exists='append', flavor='mysql')
-    #sql.write_frame(tempDataframe, con=db, name='Flow_classification', if_exists='append', flavor='mysql')
 
 def predictFlow(averageFlow):
     predictResult = averageFlow.groupby(['Week', 'TimePeriod', 'Building'], as_index=False)['Kbps'].sum()
-    sumKbps = np.sum(predictResult['Kbps'])
 
-    predictResult['Percentage'] = predictResult['Kbps'] / sumKbps * 100
+    for i in range(len(predictResult.index)):
+        flowFilter = predictResult[(predictResult.Week == predictResult.ix[i,'Week']) & (predictResult.TimePeriod == predictResult.ix[i,'TimePeriod'])]
+        sumKbps = np.sum(flowFilter['Kbps'])
+        predictResult.ix[i,'Percentage'] = predictResult.ix[i,'Kbps'] / sumKbps * 100
+
     print predictResult
 
     tempDataframe = predictResult.copy()

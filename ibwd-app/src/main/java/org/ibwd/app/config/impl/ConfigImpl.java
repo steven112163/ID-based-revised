@@ -1,4 +1,4 @@
-package org.ibwd.app.impl;
+package org.ibwd.app.config.impl;
 
 import org.ibwd.app.config.AppConfig;
 import org.ibwd.app.config.ConfigService;
@@ -83,6 +83,9 @@ public class ConfigImpl implements ConfigService {
 
     private void loadAppId() {
         appId = coreService.getAppId(CONFIG_APP);
+        if (appId == null) {
+            log.warn("application ID is null");
+        }
     }
 
     public Set<String> getCoreSw() {

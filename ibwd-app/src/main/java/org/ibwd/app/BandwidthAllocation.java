@@ -147,9 +147,10 @@ public class BandwidthAllocation implements BandwidthAllocationService{
 
     private String accessDbUrl = "http://127.0.0.1:5000";
 
-    private HashMap<String, Integer> userPriority;
-    private HashMap<String, Integer> buildingPercentage;
+    //private HashMap<String, Integer> userPriority;
     private HashMap<String, Long> buildingQueue;
+
+    private String[] week = {"", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
     @Activate
     protected void activate() {
@@ -157,9 +158,14 @@ public class BandwidthAllocation implements BandwidthAllocationService{
         networkConfigService.addListener(configListener);
         deviceService.addListener(deviceListener);
         log.info("org.ibwd Started", appId.id());
-        //setupConfiguration();
-        //setQueue();
-        //timer();
+
+        driverHandler = driverService.createHandler(DeviceId.deviceId("ovsdb:127.0.0.1"));
+        queueConfig = driverHandler.behaviour(QueueConfigBehaviour.class);
+        qosConfig = driverHandler.behaviour(QosConfigBehaviour.class);
+        portConfig = driverHandler.behaviour(PortConfigBehaviour.class);
+        setupConfiguration();
+        setQueue();
+        timer();
     }
 
     @Deactivate
@@ -168,7 +174,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
         networkConfigService.removeListener(configListener);
         deviceService.removeListener(deviceListener);
         log.info("org.ibwd Stopped");
-
+        
         Collection<QueueDescription> queues = queueConfig.getQueues();
         Iterator<QueueDescription> it = queues.iterator();
         while(it.hasNext()) {
@@ -186,7 +192,6 @@ public class BandwidthAllocation implements BandwidthAllocationService{
 
     public Long getQueue(DeviceId swId, PortNumber outPort, MacAddress srcMac, MacAddress dstMac) {
         String type = swType.get(swId);
-        log.info("switch {} type: {}", swId, type);
 
         if(type == null)
             return Long.valueOf(-1);
@@ -197,6 +202,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
 
         //int currentHour = new Date().getTime();
         int currentHour = calendar.get(Calendar.HOUR_OF_DAY);
+        String currentWeek = week[calendar.get(Calendar.DAY_OF_WEEK)];
 
         switch (type) {
             case CORE_SW:
@@ -218,7 +224,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                     DeviceId dstSwId = link.dst().deviceId();
 
                     if(swType.get(dstSwId).equalsIgnoreCase(ACCESS_SW)) { // Dst User
-                        return userToQueue(dstMac, currentHour);
+                        return userToQueue(dstMac, currentHour, currentWeek);
                     }
                     else if(swType.get(dstSwId).equalsIgnoreCase(CORE_SW)) { //Src Room
                         return roomToQueue(srcMac);
@@ -226,16 +232,12 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                 }
                 break;
             case ACCESS_SW:
-                log.info("ACCESS_SW");
-                log.info("switch: {}", swId);
                 if(linkIt.hasNext()) {
                     Link link = linkIt.next();
                     DeviceId dstSwId = link.dst().deviceId();
 
                     if(swType.get(dstSwId).equalsIgnoreCase(AGGRE_SW)) { // Src User
-                        log.info("AGGRE_SW");
-                        log.info("dstSwId: {}", dstSwId);
-                        return userToQueue(srcMac, currentHour);
+                        return userToQueue(srcMac, currentHour, currentWeek);
                     }
                 }
                 break;
@@ -256,7 +258,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
         return Long.valueOf(-1);
     }
 
-    private Long userToQueue(MacAddress mac, int currentHour) {
+    private Long userToQueue(MacAddress mac, int currentHour, String currentWeek) {
         try {
             URL url = new URL(accessDbUrl + "/macToUser?mac=" + mac);	
             URLConnection yc = url.openConnection();
@@ -271,11 +273,8 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                 JSONObject j = new JSONObject(inputLine);
                 userId = j.getString("User_ID");
             }
-            else {
+            else if(inputLine.equals("empty"))
                 return Long.valueOf(-1);
-            }
-
-            log.info("userId: {}", userId);
 
             HostId hostId = HostId.hostId(mac);
             DeviceId hostSw = hostService.getHost(hostId).location().deviceId();  
@@ -298,35 +297,29 @@ public class BandwidthAllocation implements BandwidthAllocationService{
             else if(inputLine.equals("empty"))
                 return Long.valueOf(-1);
 
-            log.info("building: {}", building);
-            log.info("room: {}", room);
-            log.info("currentHour: {}", currentHour);
-
             url = new URL(accessDbUrl + "/userToPriority?user=" + userId
                 + "&room=" + room + "&building=" + building  
-                + "&time_interval=" + currentHour);	
+                + "&time_interval=" + currentHour + "&week=" + currentWeek);	
             yc = url.openConnection();
             in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 
             inputLine = in.readLine();
             in.close();
 
-            int priority = -1;
+            String bwdReq = null;
 
             if(!inputLine.equals("empty")) {
                 JSONObject j = new JSONObject(inputLine);
-                priority = j.getInt("Priority");
+                bwdReq = j.getString("Bwd_req");
             }
             else if(inputLine.equals("empty"))
                 return Long.valueOf(-1);
 
-            log.info("priority: {}", priority);
-
-            if(priority == 1)
+            if(bwdReq.equals("Low"))
                 return Long.valueOf(1);
-            else if(priority == 2)
+            else if(bwdReq.equals("Mid"))
                 return Long.valueOf(2);
-            else if(priority == 3)
+            else if(bwdReq.equals("High"))
                 return Long.valueOf(3);
             else
                 return Long.valueOf(-1);
@@ -402,7 +395,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
             if(building == null)
                 return Long.valueOf(-1);
             else
-                return buildingQueue.get(building);
+                return buildingQueue.get(building) == null ? Long.valueOf(-1) : buildingQueue.get(building);
         }
         catch (Exception e) {
             log.info("buildingToQueue exception: ", e);			
@@ -440,18 +433,14 @@ public class BandwidthAllocation implements BandwidthAllocationService{
     }
 
     private void setQueue() {
-        driverHandler = driverService.createHandler(DeviceId.deviceId("ovsdb:127.0.0.1"));
-        queueConfig = driverHandler.behaviour(QueueConfigBehaviour.class);
-        qosConfig = driverHandler.behaviour(QosConfigBehaviour.class);
-        portConfig = driverHandler.behaviour(PortConfigBehaviour.class);
-
         QueueDescription.Builder queueDesc = DefaultQueueDescription.builder();
         QosDescription.Builder qosDesc = DefaultQosDescription.builder();
         
         int currentHour = calendar.get(Calendar.HOUR_OF_DAY);
+        String currentWeek = week[calendar.get(Calendar.DAY_OF_WEEK)];
 
-        userPriority = new HashMap<>();
-        buildingPercentage = new HashMap<>();
+        //userPriority = new HashMap<>();
+        HashMap<String, Integer> buildingPercentage = new HashMap<>();
         buildingQueue = new HashMap<>();
 
         Iterator<Device> it = deviceService.getAvailableDevices().iterator();
@@ -459,7 +448,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
             DeviceId srcSwId = it.next().id();
             String type = swType.get(srcSwId);
             
-            if(type == null)
+            if(type == null) //test a null type
                 continue;
 
             Set<Link> linkSet = linkService.getDeviceEgressLinks(srcSwId);
@@ -483,16 +472,16 @@ public class BandwidthAllocation implements BandwidthAllocationService{
 
                                 Map<Long, QueueDescription> queues = new HashMap<>();
 
-                                QueueId queueId = QueueId.queueId(srcPortName+"-queue1");
+                                QueueId queueId = QueueId.queueId(srcPortName+"-queue0"); //default queue
                                 queueConfig.deleteQueue(queueId);
                                 queueDesc.queueId(queueId)
                                         .maxRate(Bandwidth.mbps(bandwidth))
-                                        .minRate(Bandwidth.mbps(Long.valueOf("0")));
+                                        .minRate(Bandwidth.mbps(Long.valueOf(bandwidth/10)));
 
                                 queueConfig.addQueue(queueDesc.build());
                                 queues.put(0L, queueDesc.build());
 
-                                queueId = QueueId.queueId(srcPortName+"-queue2");
+                                queueId = QueueId.queueId(srcPortName+"-queue1");
                                 queueConfig.deleteQueue(queueId);
                                 queueDesc.queueId(queueId)
                                         .maxRate(Bandwidth.mbps(bandwidth))
@@ -501,7 +490,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                                 queueConfig.addQueue(queueDesc.build());
                                 queues.put(1L, queueDesc.build());
 
-                                queueId = QueueId.queueId(srcPortName+"-queue3");
+                                queueId = QueueId.queueId(srcPortName+"-queue2");
                                 queueConfig.deleteQueue(queueId);
                                 queueDesc.queueId(queueId)
                                         .maxRate(Bandwidth.mbps(bandwidth))
@@ -532,7 +521,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                     case AGGRE_SW:
                         while(linkIt.hasNext()) {
                             Link link = linkIt.next();
-                            DeviceId dstSwId = link.dst().deviceId();                            
+                            DeviceId dstSwId = link.dst().deviceId(); 
 
                             if(swType.get(dstSwId).equalsIgnoreCase(ACCESS_SW)) {
                                 String building = null;
@@ -558,7 +547,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                                 int userCount_3 = 0;
 
                                 url = new URL(accessDbUrl + "/flowClassToUserCount?building=" + building 
-                                    + "&room=" + room + "&time_interval=" + currentHour);	
+                                    + "&room=" + room + "&time_interval=" + currentHour + "&week=" + currentWeek);	
                                 yc = url.openConnection();
                                 in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 
@@ -572,15 +561,15 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                                         JSONObject jo = ja.getJSONObject(i);
 
                                         String user = jo.getString("User_ID");
-                                        int priority = jo.getInt("Priority");
+                                        String bwdReq = jo.getString("Bwd_req");
                                         
-                                        userPriority.put(user, priority);
+                                        //userPriority.put(user, priority);
 
-                                        if(priority == 1)
+                                        if(bwdReq.equals("Low"))
                                             userCount_1++;
-                                        else if(priority == 2)
+                                        else if(bwdReq.equals("Mid"))
                                             userCount_2++;
-                                        else if(priority == 3)
+                                        else if(bwdReq.equals("High"))
                                             userCount_3++;
                                     }
                                 }
@@ -597,11 +586,11 @@ public class BandwidthAllocation implements BandwidthAllocationService{
 
                                 Map<Long, QueueDescription> queues = new HashMap<>();
 
-                                QueueId queueId = QueueId.queueId(srcPortName+"-queue1");
+                                QueueId queueId = QueueId.queueId(srcPortName+"-queue0");
                                 queueConfig.deleteQueue(queueId);
                                 queueDesc.queueId(queueId)
                                         .maxRate(Bandwidth.mbps(bandwidth))
-                                        .minRate(Bandwidth.mbps(Long.valueOf("0")));
+                                        .minRate(Bandwidth.mbps(Long.valueOf(bandwidth/10)));
 
                                 queueConfig.addQueue(queueDesc.build());
                                 queues.put(0L, queueDesc.build());
@@ -611,7 +600,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                                 double minRate_2 = 2*minRate*userCount_2;
                                 double minRate_3 = 3*minRate*userCount_3;
 
-                                queueId = QueueId.queueId(srcPortName+"-queue2");
+                                queueId = QueueId.queueId(srcPortName+"-queue1");
                                 queueConfig.deleteQueue(queueId);
                                 queueDesc.queueId(queueId)
                                         .maxRate(Bandwidth.mbps(bandwidth))
@@ -620,7 +609,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                                 queueConfig.addQueue(queueDesc.build());
                                 queues.put(1L, queueDesc.build());
 
-                                queueId = QueueId.queueId(srcPortName+"-queue3");
+                                queueId = QueueId.queueId(srcPortName+"-queue2");
                                 queueConfig.deleteQueue(queueId);
                                 queueDesc.queueId(queueId)
                                         .maxRate(Bandwidth.mbps(bandwidth))
@@ -629,7 +618,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                                 queueConfig.addQueue(queueDesc.build());
                                 queues.put(2L, queueDesc.build());
 
-                                queueId = QueueId.queueId(srcPortName+"-queue4");
+                                queueId = QueueId.queueId(srcPortName+"-queue3");
                                 queueConfig.deleteQueue(queueId);
                                 queueDesc.queueId(queueId)
                                         .maxRate(Bandwidth.mbps(bandwidth))
@@ -663,7 +652,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                             DeviceId dstSwId = link.dst().deviceId();
 
                             if(swType.get(dstSwId).equalsIgnoreCase(CORE_SW)) {
-                                URL url = new URL(accessDbUrl + "/buildingToPercent?time_interval=" + currentHour);	
+                                URL url = new URL(accessDbUrl + "/buildingToPercent?time_interval=" + currentHour + "&week=" + currentWeek);	
                                 URLConnection yc = url.openConnection();
                                 BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 
@@ -695,16 +684,16 @@ public class BandwidthAllocation implements BandwidthAllocationService{
 
                                 Map<Long, QueueDescription> queues = new HashMap<>();
 
-                                QueueId queueId = QueueId.queueId(srcPortName+"-queue1");
+                                QueueId queueId = QueueId.queueId(srcPortName+"-queue0");
                                 queueConfig.deleteQueue(queueId);
                                 queueDesc.queueId(queueId)
                                         .maxRate(Bandwidth.mbps(bandwidth))
-                                        .minRate(Bandwidth.mbps(Long.valueOf("0")));
+                                        .minRate(Bandwidth.mbps(Long.valueOf(bandwidth/10)));
 
                                 queueConfig.addQueue(queueDesc.build());
                                 queues.put(0L, queueDesc.build());
 
-                                int i = 2;
+                                int i = 1;
                                 for(String b : buildingPercentage.keySet()) {
                                     double minRate = bandwidth*buildingPercentage.get(b)/100;
 
@@ -715,8 +704,8 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                                             .minRate(Bandwidth.mbps(minRate));
 
                                     queueConfig.addQueue(queueDesc.build());
-                                    queues.put(Long.valueOf(i-1), queueDesc.build());
-                                    buildingQueue.put(b, Long.valueOf(i-1));
+                                    queues.put(Long.valueOf(i), queueDesc.build());
+                                    buildingQueue.put(b, Long.valueOf(i));
 
                                     i++;
                                 }
@@ -772,8 +761,8 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                 case DEVICE_AVAILABILITY_CHANGED:          
                 case DEVICE_REMOVED:
                 case DEVICE_SUSPENDED:
-                    //setQueue();
-                    //timer();
+                    setQueue();
+                    timer();
                     break;
                 default:
                     break;
@@ -788,10 +777,10 @@ public class BandwidthAllocation implements BandwidthAllocationService{
                 switch (event.type()) {
                     case CONFIG_ADDED:
                     case CONFIG_UPDATED:
-                    case CONFIG_REMOVED:
-                        //setupConfiguration();
-                        //setQueue();
-                        //timer();
+                    //case CONFIG_REMOVED:
+                        setupConfiguration();
+                        setQueue();
+                        timer();
                         break;
                     default:
                         break;
@@ -803,7 +792,7 @@ public class BandwidthAllocation implements BandwidthAllocationService{
     public class MyJob implements Runnable{
         @Override
             public void run() {        
-                //setQueue();
+                setQueue();
             }
     }
 }

@@ -195,8 +195,10 @@ def flowClassToUserCount():
     building = request.args.get('building')
     room = request.args.get('room')
     time_interval = request.args.get('time_interval')
+    week = request.args.get('week')
 
-    cursor.execute("SELECT User_ID, Priority FROM Flow_classification WHERE Building='" + building + "' and Room='" + room + "' and Time_interval='" + time_interval + "'")
+    cursor.execute("SELECT User_ID, Bwd_req FROM Flow_classification WHERE Building='" + building + "' and Room='" + room + \
+    "' and Time_period='" + time_interval + "' and Week='" + week + "'")
     result = cursor.fetchall()
     columns_name = [d[0] for d in cursor.description]
 
@@ -215,10 +217,11 @@ def userToPriority():
     building = request.args.get('building')
     room = request.args.get('room')
     time_interval = request.args.get('time_interval')
+    week = request.args.get('week')
 
 
-    cursor.execute("SELECT Priority FROM Flow_classification WHERE Building='" + building + "' and Room='" + room + \
-    "' and Time_interval='" + time_interval + "' and User_ID='" + user + "'")
+    cursor.execute("SELECT Bwd_req FROM Flow_classification WHERE Building='" + building + "' and Room='" + room + \
+    "' and Time_period='" + time_interval + "' and User_ID='" + user + "' and Week='" + week + "'")
     result = cursor.fetchone()
     columns_name = [d[0] for d in cursor.description]
 
@@ -231,8 +234,9 @@ def userToPriority():
 @app.route ( '/buildingToPercent',  methods = [ 'GET' ]) 
 def buildingToPercent(): 
     time_interval = request.args.get('time_interval')
+    week = request.args.get('week')
 
-    cursor.execute("SELECT Building, Percentage FROM Area_flow WHERE Time_interval='" + time_interval + "'")
+    cursor.execute("SELECT Building, Percentage FROM Area_flow WHERE Time_period='" + time_interval + "' and Week='" + week + "'")
     result = cursor.fetchall()
     columns_name = [d[0] for d in cursor.description]
 
