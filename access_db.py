@@ -27,16 +27,14 @@ def query_mac():
     mac = request.args.get('mac')
 
     cursor.execute("SELECT Enable FROM Registered_MAC WHERE MAC='" + mac + "'")
-    result = cursor.fetchall()
+    result = cursor.fetchone()
     columns_name = [d[0] for d in cursor.description]
 
     if not result:
         return "empty"
     else:
-	    for row in result:
-	        row = dict(zip(columns_name, row))
-
-    return json.dumps(row)
+        row = dict(zip(columns_name, result))
+        return json.dumps(row)
 
 @app.route ( '/insert_mac',  methods = [ 'GET' ])
 def insert_mac():
@@ -53,16 +51,14 @@ def query_ip():
     ip = request.args.get('ip')
 
     cursor.execute("SELECT MAC FROM IP_MAC WHERE IP='" + ip + "'")
-    result = cursor.fetchall()
+    result = cursor.fetchone()
     columns_name = [d[0] for d in cursor.description]
 
     if not result:
         return "empty"
     else:
-	    for row in result:
-	        row = dict(zip(columns_name, row))
-
-    return json.dumps(row)
+        row = dict(zip(columns_name, result))
+        return json.dumps(row)
 
 @app.route ( '/update_ip',  methods = [ 'GET' ]) 
 def update_ip(): 
@@ -91,32 +87,28 @@ def macToUser():
     mac = request.args.get('mac')
 
     cursor.execute("SELECT User_ID FROM Registered_MAC WHERE MAC='" + mac + "' and Enable=true")
-    result = cursor.fetchall()
+    result = cursor.fetchone()
     columns_name = [d[0] for d in cursor.description]
 
     if not result:
         return "empty"
     else:
-	    for row in result:
-	        row = dict(zip(columns_name, row))
-
-    return json.dumps(row)
+        row = dict(zip(columns_name, result))
+        return json.dumps(row)
 
 @app.route ( '/macToUG',  methods = [ 'GET' ]) 
 def macToUG(): 
     mac = request.args.get('mac')
 
     cursor.execute("SELECT User_ID, Group_ID FROM Registered_MAC WHERE MAC='" + mac + "' AND Enable = 1")
-    result = cursor.fetchall()
+    result = cursor.fetchone()
     columns_name = [d[0] for d in cursor.description]
 
     if not result:
         return "empty"
     else:
-	    for row in result:
-	        row = dict(zip(columns_name, row))
-
-    return json.dumps(row)
+        row = dict(zip(columns_name, result))
+        return json.dumps(row)
 
 @app.route ( '/userToMac',  methods = [ 'GET' ]) 
 def userToMac(): 
@@ -127,7 +119,6 @@ def userToMac():
     columns_name = [d[0] for d in cursor.description]
 
     result_list = []
-  
     for row in result:
         result_list.append(dict(zip(columns_name, row)))
 
@@ -142,7 +133,6 @@ def groupToMac():
     columns_name = [d[0] for d in cursor.description]
 
     result_list = []
-  
     for row in result:
         result_list.append(dict(zip(columns_name, row)))
 
@@ -159,7 +149,8 @@ def insertACL():
     permission = request.args.get('permission')
     priority = request.args.get('priority')
 
-    cursor.execute("INSERT INTO Access_control (ACL_ID, Src_attr, Src_ID, Dst_IP, Dst_Port, Protocol, Permission, Priority) VALUES ('" + acl_id + "', '" + src_attr + "', '" + src_id + "', '" + ip + "', '" + port + "', '" + proto_type + "', '" + permission + "', '" + priority + "')")
+    cursor.execute("INSERT INTO Access_control (ACL_ID, Src_attr, Src_ID, Dst_IP, Dst_Port, Protocol, Permission, Priority) VALUES \
+    ('" + acl_id + "', '" + src_attr + "', '" + src_id + "', '" + ip + "', '" + port + "', '" + proto_type + "', '" + permission + "', '" + priority + "')")
     conn.commit()
 
     return "finish"
@@ -180,7 +171,6 @@ def getAcl():
     columns_name = [d[0] for d in cursor.description]
 
     result_list = []
-   
     for row in result:
         result_list.append(dict(zip(columns_name, row)))
 
@@ -191,30 +181,26 @@ def swToLocation():
     sw = request.args.get('sw')
 
     cursor.execute("SELECT Building, Room FROM Switch WHERE Switch_ID='" + sw + "'")
-    result = cursor.fetchall()
+    result = cursor.fetchone()
     columns_name = [d[0] for d in cursor.description]
 
     if not result:
         return "empty"
     else:
-	    for row in result:
-	        row = dict(zip(columns_name, row))
-
-    return json.dumps(row)
+        row = dict(zip(columns_name, result))
+        return json.dumps(row)
 
 @app.route ( '/flowClassToUserCount',  methods = [ 'GET' ]) 
 def flowClassToUserCount(): 
     building = request.args.get('building')
     room = request.args.get('room')
     time_interval = request.args.get('time_interval')
-    #priority = request.args.get('priority')
 
     cursor.execute("SELECT User_ID, Priority FROM Flow_classification WHERE Building='" + building + "' and Room='" + room + "' and Time_interval='" + time_interval + "'")
     result = cursor.fetchall()
     columns_name = [d[0] for d in cursor.description]
 
     result_list = []  
-
     if not result:
         return "empty"
     else:
@@ -231,17 +217,16 @@ def userToPriority():
     time_interval = request.args.get('time_interval')
 
 
-    cursor.execute("SELECT Priority FROM Flow_classification WHERE Building='" + building + "' and Room='" + room + "' and Time_interval='" + time_interval + "' and User_ID='" + user + "'")
-    result = cursor.fetchall()
+    cursor.execute("SELECT Priority FROM Flow_classification WHERE Building='" + building + "' and Room='" + room + \
+    "' and Time_interval='" + time_interval + "' and User_ID='" + user + "'")
+    result = cursor.fetchone()
     columns_name = [d[0] for d in cursor.description]
 
     if not result:
         return "empty"
     else:
-	    for row in result:
-	        row = dict(zip(columns_name, row))
-
-    return json.dumps(row)
+        row = dict(zip(columns_name, result))
+        return json.dumps(row)
 
 @app.route ( '/buildingToPercent',  methods = [ 'GET' ]) 
 def buildingToPercent(): 
@@ -252,7 +237,6 @@ def buildingToPercent():
     columns_name = [d[0] for d in cursor.description]
 
     result_list = []  
-
     if not result:
         return "empty"
     else:

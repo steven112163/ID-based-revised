@@ -1,7 +1,9 @@
+import time
+import sched  
 import MySQLdb
 import datetime
-import pandas as pd
 import numpy as np
+import pandas as pd
 from pymongo import MongoClient
 
 client = MongoClient('mongodb://192.168.44.128:27017/')
@@ -15,11 +17,11 @@ week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 start = 0
 count = collection.find_one(sort=[('_id', -1)])['_id']
-end = start + count
+end = count
 
 def loadFlow():
     data = []
-    for flow in collection.find({'_id': {'$gte': start, '$lte': end}}):
+    for flow in collection.find({'_id': {'$gt': start, '$lte': end}}):
         if (flow['Src_User_ID'] != '' and flow['Switch_ID'] == flow['Src_access_sw'] and flow['Switch_port'] == flow['Src_access_port'] and flow['Bytes'] != 0):
             cursor.execute('select Building, Room from Switch where Switch_ID = "' + flow['Src_access_sw'] + '"')
             result = cursor.fetchall()
@@ -75,12 +77,10 @@ def loadOldResult(averageFlow):
 
     data = []
     for row in result:
-        #result_list.append(dict(zip(columns_name, row)))
         row = dict(zip(columns_name, row))
         data.append([row['User_ID'], row['Week'], row['Time_period'], row['Building'], row['Room'], row['Kbps'], row['Day_counts']])
 
     oldResult = pd.DataFrame(data, columns=['User', 'Week', 'TimePeriod', 'Building', 'Room', 'Kbps', 'DayCounts'])
-    #print oldResult
 
     oldResult['Kbps'] = oldResult['Kbps'] * oldResult['DayCounts']
     averageFlow['Kbps'] = averageFlow['Kbps'] * averageFlow['DayCounts']
@@ -98,30 +98,43 @@ def classifyFlow(averageFlow):
     stdError['MeanKbps'] = stdError['Kbps'] / userCounts['UserCounts']
     columns = ['Week', 'TimePeriod', 'Building', 'Room', 'MeanKbps']
     stdError = stdError[columns]
-    print stdError
+    #print stdError
 
-    '''
     for i in range(len(stdError.index)):
-        stdError.ix[i,'StdError'] = calculateStdError(stdError.ix[i,'UserCounts'], stdError.ix[i,'MeanKbps'])
+        flowFilter = (averageFlow[(averageFlow.Week == stdError.ix[i,'Week']) & (averageFlow.TimePeriod == stdError.ix[i,'TimePeriod']) & \
+        (averageFlow.Building == stdError.ix[i,'Building']) & (averageFlow.Room == stdError.ix[i,'Room'])])
+        #print flowFilter
 
-    print stdError
+        numbers = flowFilter["Kbps"].values.tolist()
+        mean = stdError.ix[i,'MeanKbps']
+        error = calculateStdError(numbers, mean)
+        high = mean + error
+        low = mean - error
 
+        stdError.ix[i,'StdError'] = error
+        stdError.ix[i,'HighThreshold'] = high
+        stdError.ix[i,'LowThreshold'] = low
+
+        for j in flowFilter.index:
+            if averageFlow.ix[j,'Kbps'] >= high:
+                averageFlow.ix[j,'BwdReq'] = 'High'
+            elif averageFlow.ix[j,'Kbps'] <= low:
+                averageFlow.ix[j,'BwdReq'] = 'Low'
+            else:
+                averageFlow.ix[j,'BwdReq'] = 'Mid'
+
+    print averageFlow
+    return averageFlow
+
+def predictFlow(averageFlow):
+    predictResult = averageFlow.groupby(['Week', 'TimePeriod', 'Building'], as_index=False)['Kbps'].sum()
+    sumKbps = np.sum(predictResult['Kbps'])
+
+    predictResult['Percentage'] = predictResult['Kbps'] / sumKbps * 100
+
+    return predictResult
+    print predictResult
     
-    for w in list(set(averageFlow["Week"])):
-        for t in list(set(averageFlow["TimePeriod"])):
-            for b in list(set(averageFlow["Building"])):
-                for r in list(set(averageFlow["Room"])):
-                    flowFilter = (averageFlow[(averageFlow.Week == w) & (averageFlow.TimePeriod == t) & (averageFlow.Building == b) & (averageFlow.Room == r)])
-
-                    if len(flowFilter.index) > 0:
-                        #print flowFilter
-                        numbers = flowFilter["Kbps"].values.tolist()
-                        #print numbers
-                        mean = np.mean(flowFilter["Kbps"])
-                        error = stdError(numbers, mean)
-                        high = mean + error
-                        low = mean - error
-    '''
 
 def calculateStdError(numbers, mean):
     total = 0
@@ -130,15 +143,18 @@ def calculateStdError(numbers, mean):
 
     return (total/len(numbers))**0.5
 
-allFlow = loadFlow()
-averageFlow = calculateAverage(allFlow)
-averageFlow = loadOldResult(averageFlow)
-classifyFlow(averageFlow)
+while True:
+    if start != end:
+        allFlow = loadFlow()
+        averageFlow = calculateAverage(allFlow)
+        averageFlow = loadOldResult(averageFlow)
+        classifyResult = classifyFlow(averageFlow)
+        predictResult = predictFlow(averageFlow)
 
+        print classifyResult
+        print predictResult
 
-
-
-
-
-
-
+    start = end
+    time.sleep(3)
+    count = collection.find_one(sort=[('_id', -1)])['_id']
+    end = count
