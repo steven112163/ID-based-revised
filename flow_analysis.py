@@ -4,20 +4,20 @@ import MySQLdb
 import datetime
 import numpy as np
 import pandas as pd
+from pandas.io import sql
 from pymongo import MongoClient
+
+week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+start = 0
+end = 0
 
 client = MongoClient('mongodb://192.168.44.128:27017/')
 db = client.portal
 collection = db.Flow
 
-db=MySQLdb.connect(host='192.168.44.128', user='root', passwd='root', db='portal')
+db = MySQLdb.connect(host='192.168.44.128', user='root', passwd='root', db='portal')
 cursor = db.cursor()
-
-week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-
-start = 0
-count = collection.find_one(sort=[('_id', -1)])['_id']
-end = count
 
 def loadFlow():
     data = []
@@ -124,16 +124,26 @@ def classifyFlow(averageFlow):
                 averageFlow.ix[j,'BwdReq'] = 'Mid'
 
     print averageFlow
-    return averageFlow
+
+    tempDataframe = averageFlow.copy()
+    tempDataframe.columns = ['User_ID', 'Week', 'Time_period', 'Building', 'Room', 'Kbps', 'Day_counts', 'Bwd_req']
+    tempDataframe['ID'] = tempDataframe.index
+    cursor.execute('delete from Flow_classification')
+    tempDataframe.to_sql(name='Flow_classification', con=db, if_exists='append', flavor='mysql')
+    #sql.write_frame(tempDataframe, con=db, name='Flow_classification', if_exists='append', flavor='mysql')
 
 def predictFlow(averageFlow):
     predictResult = averageFlow.groupby(['Week', 'TimePeriod', 'Building'], as_index=False)['Kbps'].sum()
     sumKbps = np.sum(predictResult['Kbps'])
 
     predictResult['Percentage'] = predictResult['Kbps'] / sumKbps * 100
-
-    return predictResult
     print predictResult
+
+    tempDataframe = predictResult.copy()
+    tempDataframe.columns = ['Week', 'Time_period', 'Building', 'Kbps', 'Percentage']
+    tempDataframe['ID'] = tempDataframe.index
+    cursor.execute('delete from Area_flow')
+    tempDataframe.to_sql(name='Area_flow', con=db, if_exists='append', flavor='mysql')
     
 
 def calculateStdError(numbers, mean):
@@ -144,17 +154,15 @@ def calculateStdError(numbers, mean):
     return (total/len(numbers))**0.5
 
 while True:
+    start = end
+    count = collection.find_one(sort=[('_id', -1)])['_id']
+    end = count
+
     if start != end:
         allFlow = loadFlow()
         averageFlow = calculateAverage(allFlow)
         averageFlow = loadOldResult(averageFlow)
-        classifyResult = classifyFlow(averageFlow)
-        predictResult = predictFlow(averageFlow)
+        classifyFlow(averageFlow)
+        predictFlow(averageFlow)
 
-        print classifyResult
-        print predictResult
-
-    start = end
-    time.sleep(3)
-    count = collection.find_one(sort=[('_id', -1)])['_id']
-    end = count
+    #time.sleep(3)
