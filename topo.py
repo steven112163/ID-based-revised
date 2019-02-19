@@ -86,7 +86,8 @@ def run():
     
     print("=== Run DHCP server ===")
     dhcp = net.getNodeByName('dhcp')
-    dhcp.cmdPrint('service isc-dhcp-server restart &')
+    # dhcp.cmdPrint('service isc-dhcp-server restart &')
+    dhcp.cmdPrint('/usr/sbin/dhcpd -q 4 -pf /run/dhcp-server-dhcpd.pid -cf ./dhcpd.conf %s' % dhcp.defaultIntf())
 
     print("=== Request IP ===")
     for host in net.hosts:
