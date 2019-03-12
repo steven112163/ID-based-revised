@@ -1,5 +1,17 @@
 # Captive Portal for ID-based Network
 
+## Files
+
+1. Apache server IP: Add "ServerName 192.168.44.200" in apache2.conf, which is in /etc/apache2, and add "ServerName 192.168.44.200" in default-ssl.conf, which is in /etc/apache2/sites-available.
+
+2. httpd.conf: Replace the content of 000-default.conf, which is in /etc/apache2/sites-available, with that of httpd.conf
+
+You can find how to setup the environment in step 1 and 2 on (https://www.digitalocean.com/community/tutorials/how-to-install-linux-apache-mysql-php-lamp-stack-on-ubuntu-16-04), (https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04), and (https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-apache-for-ubuntu-14-04)
+
+3. Login directory: Place the whole Login directory in /var/www/html
+
+4. portal.sql: put portal.sql in your database
+
 ## Usage
 
 1. Start ONOS.
@@ -47,7 +59,12 @@ onos> app activate iacl.app ibwd.app ifwd.app
 $ onos-netcfg localhost net_config.json
 ```
 
-8. Run mininet.
+8. Run access_db.
+```
+$ sudo python access_db.py
+```
+
+9. Run mininet.
 ```
 $ sudo python topo.py
 ```
