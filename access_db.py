@@ -8,7 +8,7 @@ import json
 app = Flask( __name__ )
 mysql = MySQL()
 
-app.config['MYSQL_DATABASE_HOST'] = '192.168.44.128'
+app.config['MYSQL_DATABASE_HOST'] = '127.0.0.1'
 app.config['MYSQL_DATABASE_USER'] = 'root'
 app.config['MYSQL_DATABASE_PASSWORD'] = 'root'
 app.config['MYSQL_DATABASE_DB'] = 'portal'
@@ -17,7 +17,7 @@ mysql.init_app(app)
 conn = mysql.connect()
 cursor = conn.cursor()
 
-client = MongoClient("mongodb://192.168.44.128:27017/")
+client = MongoClient("mongodb://127.0.0.1:27017/")
 db = client.portal
 collection = db.Flow
 counters = db.counters
