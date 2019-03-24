@@ -222,8 +222,8 @@ public class ReactiveForwarding {
         TrafficSelector.Builder selector = DefaultTrafficSelector.builder();
         selector.matchEthType(Ethernet.TYPE_IPV4);
         packetService.cancelPackets(selector.build(), PacketPriority.REACTIVE, appId);
-        selector.matchEthType(Ethernet.TYPE_ARP);
-        packetService.cancelPackets(selector.build(), PacketPriority.REACTIVE, appId);
+        //selector.matchEthType(Ethernet.TYPE_ARP);
+        //packetService.cancelPackets(selector.build(), PacketPriority.REACTIVE, appId);
     }
 
     private void readComponentConfiguration(ComponentContext context) {
@@ -324,7 +324,7 @@ public class ReactiveForwarding {
                     return;
                 }
                 else if(resultAction.equals("PktFromPortal")) {
-                    //pktFromPortal(context);
+                    pktFromPortal(context);
                     return;
                 }
                 else if(resultAction.equals("RedirectToPortal")) {
@@ -405,13 +405,16 @@ public class ReactiveForwarding {
             }
         }
 
-        if(old_src_mac != null && old_src_ip != null) {
-            ipv4Packet.setSourceAddress(old_src_ip.toString());
-            tcpPacket.resetChecksum();
-            tcpPacket.serialize();
-            ipv4Packet.resetChecksum();
-            ipv4Packet.serialize();
-        }
+		MacAddress src_mac = ethPkt.getSourceMAC();
+		if(src_mac.toString() != portal_mac) { // Don't modify source MAC if it is portal_mac
+			if(old_src_mac != null && old_src_ip != null) {
+            	ipv4Packet.setSourceAddress(old_src_ip.toString());
+            	tcpPacket.resetChecksum();
+            	tcpPacket.serialize();
+            	ipv4Packet.resetChecksum();
+            	ipv4Packet.serialize();
+        	}
+		}
 
         OutboundPacket OutPkt = new DefaultOutboundPacket(in_sw, treatment, ByteBuffer.wrap(ethPkt.serialize()));
         packetService.emit(OutPkt);
@@ -478,8 +481,8 @@ public class ReactiveForwarding {
 
         OutboundPacket OutPkt = new DefaultOutboundPacket(in_sw, treatment, ByteBuffer.wrap(ethPkt.serialize()));
         
-        
-        treatment = DefaultTrafficTreatment.builder()
+        // Inorder to enable PktFromPortal
+        /*treatment = DefaultTrafficTreatment.builder()
                 .setIpSrc(dst_ip)
                 .setOutput(PortNumber.NORMAL)
                 .build();
@@ -504,7 +507,7 @@ public class ReactiveForwarding {
                 .makeTemporary(flowTimeout)
                 .add();
 
-        flowObjectiveService.forward(DeviceId.deviceId(portal_location), forwardingObjective);
+        flowObjectiveService.forward(DeviceId.deviceId(portal_location), forwardingObjective);*/
         
 
         packetService.emit(OutPkt);
@@ -684,10 +687,11 @@ public class ReactiveForwarding {
         selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthDst(MacAddress.valueOf(portal_mac));
         installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
 
+		// Inorder to enable PktFromPortal
         //From portal
-        selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthSrc(MacAddress.valueOf(portal_mac));
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
+        //selectorBuilder = DefaultTrafficSelector.builder();
+        //selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthSrc(MacAddress.valueOf(portal_mac));
+        //installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
         
         /*
         if(!switchId.toString().equalsIgnoreCase(portal_location)) {
