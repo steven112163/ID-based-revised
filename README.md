@@ -2,15 +2,43 @@
 
 ## Files
 
-1. Apache server IP: Add "ServerName 192.168.44.200" in apache2.conf, which is in /etc/apache2, and add "ServerName 192.168.44.200" in default-ssl.conf, which is in /etc/apache2/sites-available.
+1. Apache server IP: Add "ServerName 192.168.44.200" in apache2.conf and default-ssl.conf.
+```
+$ sudo vim /etc/apache2/apache2.conf
+in /etc/apache2/apache2.conf
+219 # vim: syntax=apache ts=4 sw=4 sts=4 sr noet
+220 ServerName 192.168.44.200
 
-2. httpd.conf: Replace the content of 000-default.conf, which is in /etc/apache2/sites-available, with that of httpd.conf.
+$ sudo vim /etc/apache2/sites-available/default-ssl.conf
+in /etc/apache2/sites-available/default-ssl.conf
+3 ServerAdmin webmaster@localhost
+4 ServerName 192.168.44.200
+5 DocumentRoot /var/www/html
+```
 
-You can find how to setup the environment in step 1 and 2 on (https://www.digitalocean.com/community/tutorials/how-to-install-linux-apache-mysql-php-lamp-stack-on-ubuntu-16-04), (https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04), and (https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-apache-for-ubuntu-14-04).
+2. Replace the content of 000-default.conf, with that of httpd.conf.
+```
+$ sudo cp ~/ID-based-master/httpd.conf /etc/apache2/sites-available/httpd.conf
+$ sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf.bak
+$ sudo cp /etc/apache2/sites-available/httpd.conf /etc/apache2/sites-available/000-default.conf
+```
 
-3. Login directory: Place the whole Login directory in /var/www/html.
+You can find how to setup the environment in step 1 and 2 on
+(https://www.digitalocean.com/community/tutorials/how-to-install-linux-apache-mysql-php-lamp-stack-on-ubuntu-16-04),
+(https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04),
+and (https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-apache-for-ubuntu-14-04).
 
-4. portal.sql: put portal.sql in your database.
+3. Copy Login directory to /var/www/html.
+```
+$ cd ID-based-master
+$ sudo cp -r Login /var/www/html/Login
+```
+
+4. Create database and tables.
+```
+mysql> CREATE DATABASE portal CHARACTER SET utf8 COLLATE utf8_general_ci;
+$ mysql -uroot -p<password> -Dportal<~/ID-based-master/portal.sql
+```
 
 ## Usage
 
