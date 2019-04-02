@@ -1,4 +1,4 @@
-# Captive Portal for ID-based Network
+# Captive Portal for ID-based Network based on mininet
 
 ## Files
 
@@ -96,3 +96,112 @@ $ sudo python access_db.py
 ```
 $ sudo python topo.py
 ```
+
+
+
+# Captive Portal for ID-based Network based on multiple VMs and physical switch
+There five virtaul machines.
+1. ID-based-web         (ct) IP = 192.168.44.101
+2. ID-based-portal      (ct) IP = 192.168.44.200
+3. ID-based-dhcp        (ct) IP = 192.168.44.201
+4. ID-based-controller  (vm) IP = 192.168.20.xxx vlan 20 (in controll plain) IP = 192.168.44.128 (for data plain)
+5. ID-based-host        (vm) IP = dynamic IP
+
+## ID-based-web
+
+1. Run simple web server in background on port 80
+```
+$ python -m SimpleHTTPServer 80 &
+```
+
+## ID-based-portal
+
+```
+TBD
+```
+
+## ID-based-dhcp
+
+1. Create a subnet for DHCP server.
+```
+$ vim /etc/dhcp/dhcpd.conf
+in /etc/dhcp/dhcpd.conf
+63 subnet 192.168.44.0 netmask 255.255.255.0 {
+64      range 192.168.44.160 192.168.44.180;
+65      option domain-name-servers 8.8.8.8;
+66      option subnet-mask 255.255.255.0;
+67      option broadcast-address 192.168.44.255;
+68      default-lease-time 20;
+69      max-lease-time 60;
+70 }
+```
+
+2. Configure which interface it should serve.
+```
+$ vim /etc/default/isc-dhcp-server
+in /etc/default/isc-dhcp-server
+21 INTERFACES="eth0"
+```
+
+3. Restart DHCP server.
+```
+$ systemctl restart isc-dhcp-server
+```
+
+## ID-based-controller
+
+1. Modify default driver in ovsdb
+```
+$ sudo vim $ONOS_ROOT/drivers/ovsdb/src/main/resources/ovsdb-drivers.xml
+in $ONOS_ROOT/drivers/ovsdb/src/main/resources/ovsdb-drivers.xml
+26      <behaviour api="org.onosproject.net.behaviour.QosConfigBehaviour"
+27                 impl="org.onosproject.drivers.ovsdb.OvsdbQosConfig"/>
+28      <behaviour api="org.onosproject.net.behaviour.QueueConfigBehaviour"
+29                 impl="org.onosproject.drivers.ovsdb.OvsdbQueueConfig"/>
+```
+
+2. Run onos.
+```
+$ cd $ONOS_ROOT
+$ bazel run onos-local -- clean debug  # ok clean debug
+```
+
+3. Tell the ovsdb to start listening on port 6640.
+```
+$ sudo ovs-vsctl set-manager tcp:127.0.0.1:6640
+```
+
+4. Build ifwd, ibwd, iacl and install them
+```
+$ cd ~/ID-based-master/ifwd
+$ maven clean install -DskipTests  # mci -DskipTests
+$ onos-app localhost install target/ifwd-app-1.10.0.oar
+$ cd ~/ID-based-master/ibwd
+$ maven clean install -DskipTests  # mci -DskipTests
+$ onos-app localhost install target/ibwd-app-1.10.0.oar
+$ cd ~/ID-based-master/iacl
+$ maven clean install -DskipTests  # mci -DskipTests
+$ onos-app localhost install target/iacl-app-1.10.0.oar
+```
+
+5. Activate three apps and ovsdb
+```
+$ onos localhost app activate org.onosproject.ovsdb org.onosproject.drivers.ovsdb org.ifwd.app org.ibwd.app org.iacl.app
+```
+
+6. Upload configuration JSON file
+```
+$ onos-netcfg localhost new_net_config.json
+```
+
+7. Start accessdb api
+```
+$ sudo python ID-based-master/accessdb.py
+```
+
+## ID-based-host
+
+1. Use browser connect to http://192.168.44.101
+2. It will be redirected to portal(http://192.168.44.200:3000)
+3. Enter username and password(ex: 1, 1)
+4. If authentication is successful, then you can access http://192.168.44.101
