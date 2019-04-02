@@ -1,0 +1,12 @@
+{
+    "apps": 
+    {
+        "org.ibwd.app": 
+        {
+            "sw-type": 
+            {
+                "accessSw": [ "of:000078321bdf7000" ]
+            }
+        }
+    }
+}
