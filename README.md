@@ -1,4 +1,4 @@
-# Captive Portal for ID-based Network based on mininet
+# Captive Portal for ID-based Network on mininet
 
 ## Files
 
@@ -99,12 +99,12 @@ $ sudo python topo.py
 
 
 
-# Captive Portal for ID-based Network based on multiple VMs and physical switch
-There five virtaul machines.
+# Captive Portal for ID-based Network on multiple VMs and physical switch
+There are five virtaul machines.
 1. ID-based-web         (ct) IP = 192.168.44.101
 2. ID-based-portal      (ct) IP = 192.168.44.200
 3. ID-based-dhcp        (ct) IP = 192.168.44.201
-4. ID-based-controller  (vm) IP = 192.168.20.xxx vlan 20 (in controll plain) IP = 192.168.44.128 (for data plain)
+4. ID-based-controller  (vm) IP = 192.168.20.xxx vlan 20 (for controll plane) IP = 192.168.44.128 (for data plane)
 5. ID-based-host        (vm) IP = dynamic IP
 
 ## ID-based-web
