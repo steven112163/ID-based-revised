@@ -100,12 +100,13 @@ $ sudo python topo.py
 
 
 # Captive Portal for ID-based Network on multiple VMs and physical switch
-There are five virtaul machines.
+There are five virtaul machines and one switch.
 1. ID-based-web         (ct) IP = 192.168.44.101
 2. ID-based-portal      (ct) IP = 192.168.44.200
 3. ID-based-dhcp        (ct) IP = 192.168.44.201
 4. ID-based-controller  (vm) IP = 192.168.20.xxx vlan 20 (for controll plane) IP = 192.168.44.128 (for data plane)
 5. ID-based-host        (vm) IP = dynamic IP
+6. Switch               (switch) IP = 192.168.20.203 ID = "of:000078321bdf7000"
 
 ## ID-based-web
 
@@ -118,6 +119,7 @@ $ python -m SimpleHTTPServer 80 &
 
 ```
 TBD
+Files need update
 ```
 
 ## ID-based-dhcp
@@ -150,7 +152,112 @@ $ systemctl restart isc-dhcp-server
 
 ## ID-based-controller
 
-1. Modify default driver in ovsdb
+1. Grant remote access privilege to 'root' for mysql.
+```
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'192.168.44.200' IDENTIFIED BY 'root' WITH GRANT OPTION;
+mysql> flush privileges;
+```
+
+2. Create database and tables.
+```
+mysql> CREATE DATABASE portal CHARACTER SET utf8 COLLATE utf8_general_ci;
+
+mysql> USE portal;
+
+mysql> CREATE TABLE IF NOT EXISTS `Access_control` (
+     >   `ACL_ID` varchar(50) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Src_attr` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Src_ID` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Dst_IP` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Dst_port` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Protocol` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Permission` tinyint(1) NOT NULL,
+     >   `Priority` int(11) NOT NULL,
+     >   PRIMARY KEY (`ACL_ID`)
+     > ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+     
+mysql> CREATE TABLE IF NOT EXISTS `Area_flow` (
+     >   `ID` int(11) NOT NULL,
+     >   `Week` varchar(3) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Time_period` int(11) NOT NULL,
+     >   `Building` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Kbps` double NOT NULL,
+     >   `Percentage` double NOT NULL,
+     >   PRIMARY KEY (`ID`)
+     > ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+     
+mysql> CREATE TABLE IF NOT EXISTS `Flow_classification` (
+     >   `ID` int(11) NOT NULL,
+     >   `User_ID` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Week` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Time_period` int(11) NOT NULL,
+     >   `Building` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Room` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Kbps` double NOT NULL,
+     >   `Day_counts` int(11) NOT NULL,
+     >   `Bwd_req` varchar(5) COLLATE utf8_unicode_ci NOT NULL,
+     >   PRIMARY KEY (`ID`)
+     > ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+     
+mysql> CREATE TABLE IF NOT EXISTS `Group` (
+     >   `Group_ID` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Name` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+     >   PRIMARY KEY (`Group_ID`)
+     > ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+mysql> CREATE TABLE IF NOT EXISTS `IP_MAC` (
+     >   `IP` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+     >   `MAC` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Time` datetime NOT NULL,
+     >   PRIMARY KEY (`IP`)
+     > ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+     
+mysql> CREATE TABLE IF NOT EXISTS `Registered_MAC` (
+     >   `MAC` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+     >   `User_ID` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Group_ID` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Enable` tinyint(1) NOT NULL,
+     >   PRIMARY KEY (`MAC`)
+     > ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+mysql> CREATE TABLE IF NOT EXISTS `Switch` (
+     >   `Switch_ID` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Building` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Room` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   PRIMARY KEY (`Switch_ID`)
+     > ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+mysql> CREATE TABLE IF NOT EXISTS `User` (
+     >   `User_ID` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Name` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Group_ID` varchar(10) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Account` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+     >   `Password` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+     >   PRIMARY KEY (`User_ID`)
+     > ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+```
+
+3. Insert values into tables.
+```
+mysql> INSERT INTO `Group` (`Group_ID`, `Name`) VALUES
+     >   ('Guest', 'Guest'),
+     >   ('Staff', 'Staff'),
+     >   ('Studnet', 'Student'),
+     >   ('Teacher', 'Teacher');
+     
+mysql> INSERT INTO `Switch` (`Switch_ID`, `Building`, `Room`) VALUES
+     >   ('of:000078321bdf7000', 'Building1', 'Room1');
+     
+mysql> INSERT INTO `User` (`User_ID`, `Name`, `Group_ID`, `Account`, `Password`) VALUES
+     >   ('A', 'A', 'Teacher', '1', '1'),
+     >   ('B', 'B', 'Teacher', '2', '2'),
+     >   ('C', 'C', 'Staff', '3', '3'),
+     >   ('D', 'D', 'Student', '4', '4'),
+     >   ('E', 'E', 'Student', '5', '5'),
+     >   ('F', 'F', 'Guest', '6', '6');
+```
+
+4. Modify default driver in ovsdb.
 ```
 $ sudo vim $ONOS_ROOT/drivers/ovsdb/src/main/resources/ovsdb-drivers.xml
 in $ONOS_ROOT/drivers/ovsdb/src/main/resources/ovsdb-drivers.xml
@@ -160,18 +267,18 @@ in $ONOS_ROOT/drivers/ovsdb/src/main/resources/ovsdb-drivers.xml
 29                 impl="org.onosproject.drivers.ovsdb.OvsdbQueueConfig"/>
 ```
 
-2. Run onos.
+5. Run onos.
 ```
 $ cd $ONOS_ROOT
 $ bazel run onos-local -- clean debug  # ok clean debug
 ```
 
-3. Tell the ovsdb to start listening on port 6640.
+6. Tell the ovsdb to start listening on port 6640.
 ```
 $ sudo ovs-vsctl set-manager tcp:127.0.0.1:6640
 ```
 
-4. Build ifwd, ibwd, iacl and install them
+7. Build ifwd, ibwd, iacl and install them
 ```
 $ cd ~/ID-based-master/ifwd
 $ maven clean install -DskipTests  # mci -DskipTests
@@ -184,17 +291,17 @@ $ maven clean install -DskipTests  # mci -DskipTests
 $ onos-app localhost install target/iacl-app-1.10.0.oar
 ```
 
-5. Activate three apps and ovsdb
+8. Activate three apps and ovsdb
 ```
 $ onos localhost app activate org.onosproject.ovsdb org.onosproject.drivers.ovsdb org.ifwd.app org.ibwd.app org.iacl.app
 ```
 
-6. Upload configuration JSON file
+9. Upload configuration JSON file
 ```
 $ onos-netcfg localhost new_net_config.json
 ```
 
-7. Start accessdb api
+10. Start accessdb api
 ```
 $ sudo python ID-based-master/accessdb.py
 ```
