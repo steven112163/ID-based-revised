@@ -117,9 +117,50 @@ $ python -m SimpleHTTPServer 80 &
 
 ## ID-based-portal
 
+1. Enable SSL on the apache server.
 ```
-TBD
-Files need update
+$ vim /etc/apache2/sites-available/default-ssl.conf
+in /etc/apache2/sites-available/default-ssl.conf
+3 ServerAdim webmaster@localhost
+4 ServerName 192.168.44.200
+5 DocumentRoot /var/www/html
+            .
+            .
+            .
+25 SSLEngine on
+26 
+27 SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt
+28 SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key
+            .
+            .
+            .
+105 BrowserMatch "MSIE [2-6]"\
+106     nokeepalive ssl-unclean-shotdown\
+107     downgrade-1.0 force-response-1.0
+```
+
+2. Copy httpd.conf to replace 000-default.conf
+```
+$ cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf.bak
+$ cp /etc/apache2/sites-available/httpd.conf /etc/apache2/sites-available/000-default.conf
+```
+
+3. Make apache server listen on port 3000
+```
+$ vim /etc/apache2/ports.conf
+in /etc/apache2/ports.conf
+5 Listen 80
+6 Listen 3000
+```
+
+4. Open port 3000 on firewall
+```
+$ ufw allow 3000/tcp
+```
+
+5. Restart apache server
+```
+$ systemctl restart apache2
 ```
 
 ## ID-based-dhcp
