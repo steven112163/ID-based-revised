@@ -32,7 +32,7 @@ if($record_count<1){
     echo 'fail';  
 }
 else{
-    $_SESSION['username'] = $username;
+    // $_SESSION['username'] = $username;
     $user_id = $row['User_ID']; 
     $group_id = $row['Group_ID'];
     $correct_passwd = $row['Password'];
