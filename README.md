@@ -139,12 +139,13 @@ in /etc/apache2/sites-available/default-ssl.conf
 107     downgrade-1.0 force-response-1.0
 ```
 
+You can find step 1 on (https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04).
+
 2. Copy httpd.conf to replace 000-default.conf
 ```
 $ cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf.bak
 $ cp /etc/apache2/sites-available/httpd.conf /etc/apache2/sites-available/000-default.conf
 ```
-You can find step 1 and 2 on (https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04).
 
 3. Make apache server listen on port 3000
 ```
