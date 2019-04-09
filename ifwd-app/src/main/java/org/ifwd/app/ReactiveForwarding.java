@@ -51,7 +51,7 @@ import org.onosproject.net.Link;
 import org.onosproject.net.Path;
 import org.onosproject.net.PortNumber;
 import org.onosproject.net.device.DeviceEvent;
-import org.onosproject.net.device.DeviceListener;
+//import org.onosproject.net.device.DeviceListener;
 import org.onosproject.net.device.DeviceService;
 import org.onosproject.net.flow.criteria.PortCriterion;
 import org.onosproject.net.flow.criteria.EthCriterion;
@@ -156,7 +156,7 @@ public class ReactiveForwarding {
     private int defaultPriority = DEFAULT_PRIORITY;
 
     private final TopologyListener topologyListener = new InternalTopologyListener();
-    private final DeviceListener deviceListener = new InternalDeviceListener();
+ //   private final DeviceListener deviceListener = new InternalDeviceListener();
     private final FlowRuleListener flowRuleListener = new InternalFlowRuleListener();
 
     private HashMap<PortNumber, MacAddress> tempMac;
@@ -166,7 +166,7 @@ public class ReactiveForwarding {
 
     private String portal_ip = "192.168.44.200";
     private String portal_mac = "ea:e9:78:fb:fd:2d";
-    private String portal_location = "of:0000000000000001";
+    private String portal_location = "of:000078321bdf7000";
 
     private String db_ip = "192.168.44.128";
 
@@ -180,15 +180,10 @@ public class ReactiveForwarding {
         appId = coreService.registerApplication("org.ifwd.app");
         packetService.addProcessor(processor, PacketProcessor.director(2));
         topologyService.addListener(topologyListener);
-        deviceService.addListener(deviceListener);
+//      deviceService.addListener(deviceListener);
         flowRuleService.addListener(flowRuleListener);
         readComponentConfiguration(context);
         requestIntercepts();
-
-        Iterator<Device> it = deviceService.getAvailableDevices().iterator();
-        while(it.hasNext()) {
-            addDefaultRule(it.next().id());
-        }
 
         log.info("org.ifwd Started", appId.id());
     }
@@ -200,7 +195,7 @@ public class ReactiveForwarding {
         flowRuleService.removeFlowRulesById(appId);
         packetService.removeProcessor(processor);
         topologyService.removeListener(topologyListener);
-        deviceService.removeListener(deviceListener);
+        //deviceService.removeListener(deviceListener);
         flowRuleService.removeListener(flowRuleListener);
         processor = null;
         log.info("org.ifwd Stopped");
@@ -216,12 +211,22 @@ public class ReactiveForwarding {
         TrafficSelector.Builder selector = DefaultTrafficSelector.builder();
         selector.matchEthType(Ethernet.TYPE_IPV4);
         packetService.requestPackets(selector.build(), PacketPriority.REACTIVE, appId);
+
+        //Request ARP packets
+        selector = DefaultTrafficSelector.builder();
+        selector.matchEthType(Ethernet.TYPE_ARP);
+        packetService.requestPackets(selector.build(), PacketPriority.REACTIVE, appId);
+
+
     }
 
     private void withdrawIntercepts() {
         TrafficSelector.Builder selector = DefaultTrafficSelector.builder();
         selector.matchEthType(Ethernet.TYPE_IPV4);
         packetService.cancelPackets(selector.build(), PacketPriority.REACTIVE, appId);
+        
+        //Withdraw ARP packets
+        selector = DefaultTrafficSelector.builder();
         selector.matchEthType(Ethernet.TYPE_ARP);
         packetService.cancelPackets(selector.build(), PacketPriority.REACTIVE, appId);
     }
@@ -265,6 +270,14 @@ public class ReactiveForwarding {
             if (dstId.mac().isLldp()) {
                 return;
             }
+
+            //Add ARP packets
+            if (ethPkt.getEtherType() == Ethernet.TYPE_ARP) {
+                normalPkt(context);
+            }
+
+
+
 
             if (ethPkt.getEtherType() == Ethernet.TYPE_IPV4) {
                 if (dstId.mac().isMulticast()) {
@@ -575,10 +588,17 @@ public class ReactiveForwarding {
         Ethernet inPkt = context.inPacket().parsed();
         TrafficSelector.Builder selectorBuilder = DefaultTrafficSelector.builder();
 
+
+        //ARP packet than forward directly to output port
+        if (inPkt.getEtherType() == Ethernet.TYPE_ARP) {
+            packetOut(context, portNumber);
+            return;
+        }
         
         selectorBuilder.matchInPort(context.inPacket().receivedFrom().port())
                 .matchEthSrc(inPkt.getSourceMAC())
                 .matchEthDst(inPkt.getDestinationMAC());
+
 
         if (inPkt.getEtherType() == Ethernet.TYPE_IPV4) {
             IPv4 ipv4Packet = (IPv4) inPkt.getPayload();
@@ -607,9 +627,9 @@ public class ReactiveForwarding {
             }
             if (ipv4Protocol == IPv4.PROTOCOL_ICMP) {
                 ICMP icmpPacket = (ICMP) ipv4Packet.getPayload();
-                //selectorBuilder.matchIPProtocol(ipv4Protocol)
-                //        .matchIcmpType(icmpPacket.getIcmpType())
-                //        .matchIcmpCode(icmpPacket.getIcmpCode());
+                selectorBuilder.matchIPProtocol(ipv4Protocol);
+                        //.matchIcmpType(icmpPacket.getIcmpType())
+                        //.matchIcmpCode(icmpPacket.getIcmpCode());
             }
         }
 
@@ -639,91 +659,6 @@ public class ReactiveForwarding {
         packetOut(context, portNumber);
     }
 
-    public void addDefaultRule(DeviceId switchId) {
-        TrafficSelector.Builder selectorBuilder = DefaultTrafficSelector.builder();
-        TrafficTreatment treatment = DefaultTrafficTreatment.builder().setOutput(PortNumber.NORMAL).build();
-
-        //DHCP
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_UDP).matchUdpSrc(TpPort.tpPort(67)).matchUdpDst(TpPort.tpPort(68));
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-
-        selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_UDP).matchUdpSrc(TpPort.tpPort(68)).matchUdpDst(TpPort.tpPort(67));
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-
-        //DNS
-        selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_UDP).matchUdpSrc(TpPort.tpPort(53));
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-
-        selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchTcpSrc(TpPort.tpPort(53));
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-
-        selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_UDP).matchUdpDst(TpPort.tpPort(53));
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-
-        selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchTcpDst(TpPort.tpPort(53));
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-
-        //ARP
-        selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_ARP);
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-
-        //MySQL
-        selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(db_ip), Ip4Prefix.MAX_MASK_LENGTH)).matchTcpSrc(TpPort.tpPort(3306));
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-
-        selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(db_ip), Ip4Prefix.MAX_MASK_LENGTH)).matchTcpDst(TpPort.tpPort(3306));
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-
-        //To portal
-        selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthDst(MacAddress.valueOf(portal_mac));
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-
-		// Inorder to enable PktFromPortal
-        //From portal
-        //selectorBuilder = DefaultTrafficSelector.builder();
-        //selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthSrc(MacAddress.valueOf(portal_mac));
-        //installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-        
-        /*
-        if(!switchId.toString().equalsIgnoreCase(portal_location)) {
-            //From portal
-            selectorBuilder = DefaultTrafficSelector.builder();
-            selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthSrc(MacAddress.valueOf(portal_mac)).matchTcpSrc(TpPort.tpPort(80));
-            installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-
-            selectorBuilder = DefaultTrafficSelector.builder();
-            selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthSrc(MacAddress.valueOf(portal_mac)).matchTcpSrc(TpPort.tpPort(443));
-            installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-        }
-
-        //From portal port == 3000
-        selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthType(Ethernet.TYPE_IPV4).matchIPProtocol(IPv4.PROTOCOL_TCP).matchEthSrc(MacAddress.valueOf(portal_mac)).matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(portal_ip), Ip4Prefix.MAX_MASK_LENGTH)).matchTcpSrc(TpPort.tpPort(3000));
-        installDefaultRule(selectorBuilder, treatment, switchId, DEFAULT_PRIORITY);
-        */
-    }
-
-    public void installDefaultRule(TrafficSelector.Builder selectorBuilder, TrafficTreatment treatment, DeviceId switchId, int priority) {
-        ForwardingObjective forwardingObjective = DefaultForwardingObjective.builder()
-                .withSelector(selectorBuilder.build())
-                .withTreatment(treatment)
-                .withPriority(priority)
-                .withFlag(ForwardingObjective.Flag.VERSATILE)
-                .fromApp(appId)
-                .makePermanent()
-                .add();
-
-        flowObjectiveService.forward(switchId, forwardingObjective);
-    }
 
     private class InternalFlowRuleListener implements FlowRuleListener {
         @Override
@@ -762,7 +697,7 @@ public class ReactiveForwarding {
         }
     }
 
-    private class InternalDeviceListener implements DeviceListener {
+ /*   private class InternalDeviceListener implements DeviceListener {
         @Override
         public void event(DeviceEvent event) {
             DeviceId switchId = event.subject().id();
@@ -771,13 +706,15 @@ public class ReactiveForwarding {
                 case DEVICE_ADDED:
                 case DEVICE_AVAILABILITY_CHANGED:
                     if(deviceService.isAvailable(switchId))
-                        addDefaultRule(switchId);
+                       // addDefaultRule(switchId);
                     break;
                 default:
                     break;
             }
         }
     }
+*/
+
 
     private class InternalTopologyListener implements TopologyListener {
         @Override
