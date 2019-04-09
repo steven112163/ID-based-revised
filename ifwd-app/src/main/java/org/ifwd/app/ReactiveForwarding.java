@@ -222,8 +222,8 @@ public class ReactiveForwarding {
         TrafficSelector.Builder selector = DefaultTrafficSelector.builder();
         selector.matchEthType(Ethernet.TYPE_IPV4);
         packetService.cancelPackets(selector.build(), PacketPriority.REACTIVE, appId);
-        //selector.matchEthType(Ethernet.TYPE_ARP);
-        //packetService.cancelPackets(selector.build(), PacketPriority.REACTIVE, appId);
+        selector.matchEthType(Ethernet.TYPE_ARP);
+        packetService.cancelPackets(selector.build(), PacketPriority.REACTIVE, appId);
     }
 
     private void readComponentConfiguration(ComponentContext context) {
@@ -607,9 +607,9 @@ public class ReactiveForwarding {
             }
             if (ipv4Protocol == IPv4.PROTOCOL_ICMP) {
                 ICMP icmpPacket = (ICMP) ipv4Packet.getPayload();
-                selectorBuilder.matchIPProtocol(ipv4Protocol)
-                        .matchIcmpType(icmpPacket.getIcmpType())
-                        .matchIcmpCode(icmpPacket.getIcmpCode());
+                //selectorBuilder.matchIPProtocol(ipv4Protocol)
+                //        .matchIcmpType(icmpPacket.getIcmpType())
+                //        .matchIcmpCode(icmpPacket.getIcmpCode());
             }
         }
 
