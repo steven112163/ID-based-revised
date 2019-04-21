@@ -39,9 +39,11 @@ def query_mac():
 @app.route ( '/insert_mac',  methods = [ 'GET' ])
 def insert_mac():
     mac = request.args.get('mac')
+    user = ''
+    group = ''
     enable = request.args.get('enable')
 
-    cursor.execute("INSERT INTO Registered_MAC (MAC, Enable) VALUES ('" + mac + "', '" + enable + "')")
+    cursor.execute("INSERT INTO Registered_MAC (MAC, User_ID, Group_ID, Enable) VALUES ('" + mac + "', '" + user + "', '" + group + "', '" + enable + "')")
     conn.commit()
 
     return "finish"
