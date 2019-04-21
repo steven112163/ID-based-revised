@@ -298,6 +298,9 @@ mysql> INSERT INTO `User` (`User_ID`, `Name`, `Group_ID`, `Account`, `Password`)
      >   ('D', 'D', 'Student', '4', '4'),
      >   ('E', 'E', 'Student', '5', '5'),
      >   ('F', 'F', 'Guest', '6', '6');
+
+mysql> INSERT INTO `Registered_MAC` (`MAC`, `User_ID`, `Group_ID`, `Enable`) VALUES
+     >   ('EA:E9:78:FB:FD:00', '', '', 1)
 ```
 
 4. Modify default driver in ovsdb.
