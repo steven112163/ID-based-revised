@@ -101,7 +101,7 @@ $ sudo python topo.py
 
 # Captive Portal for ID-based Network on multiple VMs and physical switch
 There are five virtaul machines and one switch.
-1. ID-based-web         (ct) IP = 192.168.44.101
+1. ID-based-web         (ct) IP = 192.168.20.xxx vlan 20 (for Internet) IP = 192.168.44.101 (for Intranet)
 2. ID-based-portal      (ct) IP = 192.168.44.200
 3. ID-based-dhcp        (ct) IP = 192.168.44.201
 4. ID-based-controller  (vm) IP = 192.168.20.xxx vlan 20 (for controll plane) IP = 192.168.44.128 (for data plane)
@@ -109,8 +109,31 @@ There are five virtaul machines and one switch.
 6. Switch               (switch) IP = 192.168.20.203 ID = "of:000078321bdf7000"
 
 ## ID-based-web
+It's a web server and a router.
 
-1. Run simple web server in background on port 80
+1. Configure iptables
+```
+$ iptables -t nat -A POSTROUTING -s 192.168.44.0/24 -o eth1 -j MASQUERADE
+$ iptables -t filter -A FORWARD -i eth0 -o eth1 -j ACCEPT
+$ iptables -t filter -A FORWARD -i eth1 -o eth0 -j ACCEPT
+```
+
+2. Save iptables
+```
+$ iptables-save > /etc/iptables_rules
+```
+
+3. Make web always start iptables and IPv4 routing on boot
+```
+$ vim /etc/rc.local
+in /etc/rc.local
+
+        echo "1" > /proc/sys/net/ipv4/ip_forward
+        /sbin/iptables-restore < /etc/iptables_rules
+        exit 0
+```
+
+4. Run simple web server in background on port 80
 ```
 $ python -m SimpleHTTPServer 80 &
 ```
