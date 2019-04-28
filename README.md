@@ -326,7 +326,42 @@ mysql> INSERT INTO `Registered_MAC` (`MAC`, `User_ID`, `Group_ID`, `Enable`) VAL
      >   ('EA:E9:78:FB:FD:00', '', '', 1)
 ```
 
-4. Modify default driver in ovsdb.
+4. Enable event scheduler in mysql setting
+```
+$ sudo vim /etc/mysql/mysql.conf.d/mysqld.cnf
+in /etc/mysql/mysql.conf.d/mysqld.cnf
+27 [mysqld]
+28 # add Event scheduler
+29 event_scheduler = ON
+30 #
+31 # * Basic Settings
+32 #
+```
+
+5. Eable event scheduler in mysql
+```
+mysql> set global event_scheduler = 1;
+```
+
+6. Create procedure
+```
+mysql> delimiter //
+mysql> CREATE PROCEDURE login_proce
+     > begin
+     > DELETE FROM Registered_MAC WHERE MAC != 'EA:E9:78:FB:FD:00';
+     > end//
+mysql> delimiter ;
+```
+
+7. Create event
+```
+mysql> CREATE EVENT relogin_event
+     > ON SCHEDULE every 5 minute
+     > ON COMPLETION PRESERVE ENABLE
+     > DO call login_proce();
+```
+
+8. Modify default driver in ovsdb.
 ```
 $ sudo vim $ONOS_ROOT/drivers/ovsdb/src/main/resources/ovsdb-drivers.xml
 in $ONOS_ROOT/drivers/ovsdb/src/main/resources/ovsdb-drivers.xml
@@ -336,18 +371,18 @@ in $ONOS_ROOT/drivers/ovsdb/src/main/resources/ovsdb-drivers.xml
 29                 impl="org.onosproject.drivers.ovsdb.OvsdbQueueConfig"/>
 ```
 
-5. Run onos.
+9. Run onos.
 ```
 $ cd $ONOS_ROOT
 $ bazel run onos-local -- clean debug  # ok clean debug
 ```
 
-6. Tell the ovsdb to start listening on port 6640.
+10. Tell the ovsdb to start listening on port 6640.
 ```
 $ sudo ovs-vsctl set-manager tcp:127.0.0.1:6640
 ```
 
-7. Build ifwd, ibwd, iacl and install them
+11. Build ifwd, ibwd, iacl and install them
 ```
 $ cd ~/ID-based-master/ifwd
 $ maven clean install -DskipTests  # mci -DskipTests
@@ -360,17 +395,17 @@ $ maven clean install -DskipTests  # mci -DskipTests
 $ onos-app localhost install target/iacl-app-1.10.0.oar
 ```
 
-8. Activate three apps and ovsdb
+12. Activate three apps and ovsdb
 ```
 $ onos localhost app activate org.onosproject.ovsdb org.onosproject.drivers.ovsdb org.ifwd.app org.ibwd.app org.iacl.app
 ```
 
-9. Upload configuration JSON file
+13. Upload configuration JSON file
 ```
 $ onos-netcfg localhost new_net_config.json
 ```
 
-10. Start accessdb api
+14. Start accessdb api
 ```
 $ sudo python ID-based-master/accessdb.py
 ```
