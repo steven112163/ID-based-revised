@@ -1,9 +1,9 @@
 <?php
 session_start();
-$_SESSION['link'] = mysqli_connect('127.0.0.1', 'root', '_En6794235sT_', 'portal');
+$_SESSION['link'] = mysqli_connect('192.168.44.128', 'user', '!1Qazwsxedc', 'portal');
 
 if(mysqli_connect_errno()) {
-  echo "Failed to connect to MySQL: ".mysquli_error();
+  echo "Failed to connect to MySQL: ".mysqli_error();
 }
 
 mysqli_query($_SESSION['link'], "SET NAMES 'utf8'");
