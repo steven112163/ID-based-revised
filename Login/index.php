@@ -35,7 +35,7 @@ function userlogin(){
                 $('#login_success').text('認證成功，您可以開始上網了！');
                 $('#login_success').show(); 	
                 setTimeout(function(){
-                    window.open("www.nctu.edu.tw", "_self")
+                    window.open("http://www.nctu.edu.tw/", "_self")
                 },1000);
 				
             }

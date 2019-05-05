@@ -10,7 +10,7 @@ mysql = MySQL()
 
 app.config['MYSQL_DATABASE_HOST'] = '127.0.0.1'
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'root'
+app.config['MYSQL_DATABASE_PASSWORD'] = '!1Qazwsxedc'
 app.config['MYSQL_DATABASE_DB'] = 'portal'
 
 mysql.init_app(app)
@@ -21,6 +21,38 @@ client = MongoClient("mongodb://127.0.0.1:27017/")
 db = client.portal
 collection = db.Flow
 counters = db.counters
+
+@app.route ( '/macToGroup',  methods = [ 'GET' ]) 
+def macToGroup(): 
+    mac = request.args.get('mac')
+
+    cursor.execute("SELECT Group_ID FROM Registered_MAC WHERE MAC='" + mac + "' and Enable = 1")
+    result = cursor.fetchone()
+    columns_name = [d[0] for d in cursor.description]
+
+    if not result:
+        return "empty"
+    else:
+        row = dict(zip(columns_name, result))
+        return json.dumps(row)
+
+
+
+@app.route ( '/query_acl',  methods = [ 'GET' ]) 
+def query_acl(): 
+    group_id = request.args.get('group_id')
+    ip = request.args.get('ip')
+    cursor.execute("SELECT * FROM ACL_Group_IP WHERE IP='" + ip + "' and Group_ID='" + group_id + "'")
+    result = cursor.fetchone()
+    columns_name = [d[0] for d in cursor.description]
+
+    if not result:
+        return "empty"
+    else:
+        row = dict(zip(columns_name, result))
+        return json.dumps(row)
+
+
 
 @app.route ( '/query_mac',  methods = [ 'GET' ]) 
 def query_mac(): 

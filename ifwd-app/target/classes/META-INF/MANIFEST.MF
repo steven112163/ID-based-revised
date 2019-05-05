@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1502943743413
-Build-Jdk: 1.8.0_131
-Built-By: fan
+Bnd-LastModified: 1556992280198
+Build-Jdk: 1.8.0_201
+Built-By: user
 Bundle-Description: ONOS OSGi bundle archetype
 Bundle-ManifestVersion: 2
 Bundle-Name: ifwd-app
@@ -9,10 +9,10 @@ Bundle-SymbolicName: org.ifwd.app
 Bundle-Version: 1.10.0
 Created-By: Apache Maven Bundle Plugin
 Export-Package: org.ifwd.app;uses:="org.ibwd.app,org.onosproject.cfg,org
- .onosproject.core,org.onosproject.net,org.onosproject.net.device,org.on
- osproject.net.flow,org.onosproject.net.flowobjective,org.onosproject.ne
- t.host,org.onosproject.net.packet,org.onosproject.net.topology,org.onos
- project.store.service,org.osgi.service.component";version="1.10.0"
+ .onosproject.core,org.onosproject.net.device,org.onosproject.net.flow,o
+ rg.onosproject.net.flowobjective,org.onosproject.net.host,org.onosproje
+ ct.net.packet,org.onosproject.net.topology,org.onosproject.store.servic
+ e,org.osgi.service.component";version="1.10.0"
 Import-Package: com.google.common.collect;version="[22.0,23)",org.ibwd.a
  pp;version="[1.10,2)",org.json,org.onlab.packet;version="[1.10,2)",org.
  onlab.util;version="[1.10,2)",org.onosproject.cfg;version="[1.10,2)",or
@@ -27,6 +27,5 @@ Import-Package: com.google.common.collect;version="[22.0,23)",org.ibwd.a
  .store.service;version="[1.10,2)",org.osgi.service.component;version="[
  1.2,2)",org.slf4j;version="[1.7,2)"
 Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
-Service-Component: OSGI-INF/org.ifwd.app.ReactiveForwarding.xml,OSGI-INF
- /org.ifwd.app.AppComponent.xml
+Service-Component: OSGI-INF/org.ifwd.app.ReactiveForwarding.xml
 Tool: Bnd-3.0.0.201509101326

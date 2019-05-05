@@ -38,8 +38,6 @@ public class Authentication {
     private String in_port;
 
     private String time;
-    //Add src_group
-    private String src_group = "";
 
     private String src_user = "";
     private String dst_user = "";
@@ -137,10 +135,7 @@ public class Authentication {
             result = "Pass";
         }
         else if(!src_mac.equalsIgnoreCase(gateway_mac) && src_enable) {
-            src_group = macToGroup(src_mac);
-            if (!AclToGroup(src_group, dst_ip)){
-            	result = "Pass";
-            }
+            result = "Pass";
         }
         else if(!src_mac.equalsIgnoreCase(portal_mac) && !dst_mac.equalsIgnoreCase(portal_mac)) {
             if(dst_port.equals("80") || dst_port.equals("443")) {               
@@ -302,49 +297,4 @@ public class Authentication {
         
         return false;
     }
-    
-    
-    private boolean AclToGroup(String group_id, String dst_ip) {
-        try {
-            URL url = new URL(accessDbUrl + "/query_acl?group_id=" + group_id + "&ip=" + dst_ip);
-			URLConnection yc = url.openConnection();
-			BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
-
-			String inputLine = in.readLine();
-			in.close();
-
-            if(!inputLine.equals("empty")){
-            	return true; //Drop
-            }
-            return false; //Pass
-            
-        }
-        catch (Exception e) {
-            log.info("AclToGroup exception: ", e);
-            return true;			
-        }
-    }
-    
-    private String macToGroup(String mac) {
-        try {
-            URL url = new URL(accessDbUrl + "/macToGroup?mac=" + mac);	
-            URLConnection yc = url.openConnection();
-            BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
-
-            String inputLine = in.readLine();
-            in.close();
-
-            if(!inputLine.equals("empty")) {
-                JSONObject j = new JSONObject(inputLine);
-                return j.getString("Group_ID");
-            }
-            else {
-                return "";
-            }
-        }
-        catch (Exception e) {
-            log.info("macToGroup exception: ", e);
-            return "";			
-        }  
-    }   
 }

@@ -1,0 +1,50 @@
+# location
+	in /etc/apache2/sites-available
+	in /var/www/html/Login
+
+# apache2
+	in /etc/apache2/apache2.conf
+	ServerName 192.168.44.128
+
+# access_db.py and flow_analysis.py IP and pwd changed 127.0.0.1 (192.168.44.128)
+
+# httpd.conf
+	in /etc/apache2/sites-available
+	rename 000-default.conf
+	no change IP (192.168.44.200)
+
+# ifwd-app
+	in ReactiveForwarding.java, portal_ip and db_ip
+	portal_ip no change IP (192.168.44.200)
+	db_ip no change IP (192.168.44.128)
+
+# ibwd-app
+	in BandwidthAllocation.java
+	accessDbUrl no change IP/port (127.0.0.1:5000)
+
+# iacl-app
+	in AclManager.java
+	accessDbUrl no change IP/port (127.0.0.1:5000)
+
+# Login directory
+	in /var/www/html
+	# db.php
+		change IP localhost (192.168.44.128) and pwd
+	# login_chk.php
+		change IP 127.0.0.1 (onos, 192.168.44.128)
+
+# portal.sql
+	in phpmyadmin 'portal'
+
+# ovsdb-drivers.xml
+	in ~/onos/drivers/ovsdb/src/main/resources
+	add queue and qos in default
+
+1. start onos
+2. sudo ovs-vsctl set-manager tcp:127.0.0.1:6640
+3. start access_db.py
+4. start topo.py
+5. app activate org.onosproject.ovsdb
+6. app activate org.onosproject.drivers.ovsdb
+7. install three apps and activate them
+8. onos-netcfg localhost net_config.json
