@@ -37,7 +37,7 @@ function userlogin(){
                 $('#login_success').text('Login Successfully!!!');
                 $('#login_success').show();
                 setTimeout(function() {
-                    window.open("http://192.168.44.101/show.php", "_self")
+                    window.open("http://192.168.44.202/show.php", "_self")
                 }, 1000);
 				
             }
@@ -65,8 +65,7 @@ function userlogin(){
 </script>
 
 <div id="login_block">
-	<h1 style="text-align:center;">Registered Users</h1>
-    <h1>Login</h1>
+	<h1 style="text-align:center;">Registered Users Only</h1>
 
     <form id="user_login" method="POST">
         <table id="login_table">

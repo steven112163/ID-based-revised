@@ -6,7 +6,7 @@
 <script src="./jquery-latest.js"></script>
 <style>
 table {
-	fond-family: arial, sans-serif;
+	font-family: arial, sans-serif;
 	border-collapse: collapse;
 	width: 100%;
 }
