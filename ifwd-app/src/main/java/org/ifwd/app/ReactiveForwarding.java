@@ -418,15 +418,15 @@ public class ReactiveForwarding {
             }
         }
 
-		MacAddress src_mac = ethPkt.getSourceMAC();
-		if(src_mac.toString() != portal_mac) { // Don't modify source MAC if it is portal_mac
+		Ip4Address src_ip = Ip4Address.valueOf(ipv4Packet.getSourceAddress());
+		if(src_ip.toString() != old_src_ip.toString()) { // Don't modify source IP if it is old source IP
 			if(old_src_mac != null && old_src_ip != null) {
-            	ipv4Packet.setSourceAddress(old_src_ip.toString());
-            	tcpPacket.resetChecksum();
-            	tcpPacket.serialize();
-            	ipv4Packet.resetChecksum();
-            	ipv4Packet.serialize();
-        	}
+				ipv4Packet.setSourceAddress(old_src_ip.toString());
+				tcpPacket.resetChecksum();
+				tcpPacket.serialize();
+				ipv4Packet.resetChecksum();
+				ipv4Packet.serialize();
+			}
 		}
 
         OutboundPacket OutPkt = new DefaultOutboundPacket(in_sw, treatment, ByteBuffer.wrap(ethPkt.serialize()));
