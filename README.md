@@ -102,11 +102,12 @@ $ sudo python topo.py
 # Captive Portal for ID-based Network on multiple VMs and physical switch
 There are five virtaul machines and one switch.
 1. ID-based-web         (ct) IP = 192.168.20.xxx vlan 20 (for Internet) IP = 192.168.44.101 (for Intranet)
-2. ID-based-portal      (ct) IP = 192.168.44.200
-3. ID-based-dhcp        (ct) IP = 192.168.44.201
-4. ID-based-controller  (vm) IP = 192.168.20.xxx vlan 20 (for controll plane) IP = 192.168.44.128 (for data plane)
-5. ID-based-host        (vm) IP = dynamic IP
-6. Switch               (switch) IP = 192.168.20.203 ID = "of:000078321bdf7000"
+2. ID-based-service		(ct) IP = 192.168.44.202
+3. ID-based-portal      (ct) IP = 192.168.44.200
+4. ID-based-dhcp        (ct) IP = 192.168.44.201
+5. ID-based-controller  (vm) IP = 192.168.20.xxx vlan 20 (for controll plane) IP = 192.168.44.128 (for data plane)
+6. ID-based-host        (vm) IP = dynamic IP
+7. Switch               (switch) IP = 192.168.20.203 ID = "of:000078321bdf7000"
 
 ## ID-based-web
 It's a web server and a router.
@@ -133,9 +134,36 @@ in /etc/rc.local
         exit 0
 ```
 
-4. Run simple web server in background on port 80
+4. Copy directory Website into /var/www/html
 ```
-$ python -m SimpleHTTPServer 80 &
+$ cp -R ~/ID-based-revised/Website /var/www/html/Website
+```
+
+5. Configure apache server's document root
+```
+$ vim /etc/apache2/sites-available/000-default.conf
+in /etc/apache2/sites-available/000-default.conf
+11	ServerAdmin webmaster@localhost
+12	DocumentRoot /var/www/html/Website
+```
+
+6. Restart apache server
+```
+$ systemctl restart apache2
+```
+
+## ID-based-service
+1. Copy directory Registered into /var/www/html
+```
+$ cp -R ~/ID-based-revised/Registered /var/www/html/Registered
+```
+
+2. Configure apache server's document root
+```
+$ vim /etc/apache2/sites-available/000-default.conf
+in /etc/apache2/sites-available/000-default.conf
+11	ServerAdmin webmaster@localhost
+12	DocumentRoot /var/www/html/Registered
 ```
 
 ## ID-based-portal
@@ -198,10 +226,11 @@ in /etc/dhcp/dhcpd.conf
 64      range 192.168.44.160 192.168.44.180;
 65      option domain-name-servers 8.8.8.8;
 66      option subnet-mask 255.255.255.0;
-67      option broadcast-address 192.168.44.255;
-68      default-lease-time 20;
-69      max-lease-time 60;
-70 }
+67		option routers 192.168.44.101;
+68      option broadcast-address 192.168.44.255;
+69      default-lease-time 20;
+70      max-lease-time 60;
+71 }
 ```
 
 2. Configure which interface it should serve.
@@ -308,22 +337,23 @@ mysql> CREATE TABLE IF NOT EXISTS `User` (
 mysql> INSERT INTO `Group` (`Group_ID`, `Name`) VALUES
      >   ('Guest', 'Guest'),
      >   ('Staff', 'Staff'),
-     >   ('Studnet', 'Student'),
+     >   ('Student', 'Student'),
      >   ('Teacher', 'Teacher');
      
 mysql> INSERT INTO `Switch` (`Switch_ID`, `Building`, `Room`) VALUES
      >   ('of:000078321bdf7000', 'Building1', 'Room1');
      
 mysql> INSERT INTO `User` (`User_ID`, `Name`, `Group_ID`, `Account`, `Password`) VALUES
-     >   ('A', 'A', 'Teacher', '1', '1'),
-     >   ('B', 'B', 'Teacher', '2', '2'),
-     >   ('C', 'C', 'Staff', '3', '3'),
-     >   ('D', 'D', 'Student', '4', '4'),
-     >   ('E', 'E', 'Student', '5', '5'),
-     >   ('F', 'F', 'Guest', '6', '6');
+     >   ('A', 'A', 'Teacher', 'teacher', 'teacherA'),
+     >   ('B', 'B', 'Teacher', 'teacherB', 'teacherB'),
+     >   ('C', 'C', 'Staff', 'staff', 'staffC'),
+     >   ('D', 'D', 'Student', 'student', 'studentD'),
+     >   ('E', 'E', 'Student', 'student', 'studentE'),
+     >   ('F', 'F', 'Guest', 'guest', 'guestF');
 
 mysql> INSERT INTO `Registered_MAC` (`MAC`, `User_ID`, `Group_ID`, `Enable`) VALUES
-     >   ('EA:E9:78:FB:FD:00', '', '', 1)
+     >   ('EA:E9:78:FB:FD:00', '', '', 1),
+	 >	 ('EA:E9:78:FB:FD:2E', '', '', 1);
 ```
 
 4. Enable event scheduler in mysql setting
@@ -348,7 +378,7 @@ mysql> set global event_scheduler = 1;
 mysql> delimiter //
 mysql> CREATE PROCEDURE login_proce
      > begin
-     > DELETE FROM Registered_MAC WHERE MAC != 'EA:E9:78:FB:FD:00';
+     > DELETE FROM Registered_MAC WHERE MAC != 'EA:E9:78:FB:FD:00' OR MAC != 'EA:E9:78:FB:FD:2E';
      > end//
 mysql> delimiter ;
 ```
@@ -356,7 +386,7 @@ mysql> delimiter ;
 7. Create event
 ```
 mysql> CREATE EVENT relogin_event
-     > ON SCHEDULE every 5 minute
+     > ON SCHEDULE every 1 hour
      > ON COMPLETION PRESERVE ENABLE
      > DO call login_proce();
 ```
@@ -384,13 +414,13 @@ $ sudo ovs-vsctl set-manager tcp:127.0.0.1:6640
 
 11. Build ifwd, ibwd, iacl and install them
 ```
-$ cd ~/ID-based-master/ifwd
+$ cd ~/ID-based-revised/ifwd
 $ maven clean install -DskipTests  # mci -DskipTests
 $ onos-app localhost install target/ifwd-app-1.10.0.oar
-$ cd ~/ID-based-master/ibwd
+$ cd ~/ID-based-revised/ibwd
 $ maven clean install -DskipTests  # mci -DskipTests
 $ onos-app localhost install target/ibwd-app-1.10.0.oar
-$ cd ~/ID-based-master/iacl
+$ cd ~/ID-based-revised/iacl
 $ maven clean install -DskipTests  # mci -DskipTests
 $ onos-app localhost install target/iacl-app-1.10.0.oar
 ```
@@ -407,12 +437,19 @@ $ onos-netcfg localhost new_net_config.json
 
 14. Start accessdb api
 ```
-$ sudo python ID-based-master/accessdb.py
+$ sudo python ID-based-revised/accessdb.py
+```
+
+15. Start shell script
+This script can replace step 10 to 14.
+```
+$ sh ~/ID-based-revised/installApps.sh
 ```
 
 ## ID-based-host
 
-1. Use browser connect to http://192.168.44.101
+1. Use browser connect to www.nctu.edu.tw
 2. It will be redirected to portal(http://192.168.44.200:3000)
-3. Enter username and password(ex: 1, 1)
-4. If authentication is successful, then you can access http://192.168.44.101
+3. Enter username and password(ex: teacher, teacherA)
+4. If authentication is successful, then you can access any website
+5. There is a simple website on web container(http://192.168.44.101)
