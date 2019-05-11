@@ -100,14 +100,15 @@ $ sudo python topo.py
 
 
 # Captive Portal for ID-based Network on multiple VMs and physical switch
-There are five virtaul machines and one switch.
+There are seven virtaul machines and one switch.
 1. ID-based-web         (ct) IP = 192.168.20.xxx vlan 20 (for Internet) IP = 192.168.44.101 (for Intranet)
 2. ID-based-service		(ct) IP = 192.168.44.202
 3. ID-based-portal      (ct) IP = 192.168.44.200
 4. ID-based-dhcp        (ct) IP = 192.168.44.201
 5. ID-based-controller  (vm) IP = 192.168.20.xxx vlan 20 (for controll plane) IP = 192.168.44.128 (for data plane)
-6. ID-based-host        (vm) IP = dynamic IP
-7. Switch               (switch) IP = 192.168.20.203 ID = "of:000078321bdf7000"
+6. ID-based-host1       (vm) IP = dynamic IP
+7. ID-based-host2		(vm) IP = dynamic IP
+8. Switch               (switch) IP = 192.168.20.203 ID = "of:000078321bdf7000"
 
 ## ID-based-web
 It's a web server and a router.
@@ -128,10 +129,10 @@ $ iptables-save > /etc/iptables_rules
 ```
 $ vim /etc/rc.local
 in /etc/rc.local
-
-        echo "1" > /proc/sys/net/ipv4/ip_forward
-        /sbin/iptables-restore < /etc/iptables_rules
-        exit 0
+14	echo "1" > /proc/sys/net/ipv4/ip_forward
+15	/sbin/iptables-restore < /etc/iptables_rules
+16
+17	exit 0
 ```
 
 4. Copy directory Website into /var/www/html
@@ -446,7 +447,7 @@ This script can replace step 10 to 14.
 $ sh ~/ID-based-revised/installApps.sh
 ```
 
-## ID-based-host
+## ID-based-host1 and ID-based-host2
 
 1. Use browser connect to www.nctu.edu.tw
 2. It will be redirected to portal(http://192.168.44.200:3000)
