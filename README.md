@@ -167,6 +167,11 @@ in /etc/apache2/sites-available/000-default.conf
 12	DocumentRoot /var/www/html/Registered
 ```
 
+3. Restart apaceh server
+```
+$ systemctl restart apache2
+```
+
 ## ID-based-portal
 
 1. Enable SSL on the apache server.
