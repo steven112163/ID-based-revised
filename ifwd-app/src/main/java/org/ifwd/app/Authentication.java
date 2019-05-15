@@ -117,7 +117,7 @@ public class Authentication {
             return "Pass";
         }
         else if(src_mac.equalsIgnoreCase(portal_mac)) {
-            if(src_port.equals("80") || src_port.equals("443")) {
+            if(src_port.equals("80") || src_port.equals("443") || src_port.equals("3000")) {
                 return "PktFromPortal";
             }
             else {
@@ -143,7 +143,7 @@ public class Authentication {
             }
         }
         else if(!src_mac.equalsIgnoreCase(portal_mac) && !dst_mac.equalsIgnoreCase(portal_mac)) {
-            if(dst_port.equals("80") || dst_port.equals("443")) {               
+            if(dst_port.equals("80") || dst_port.equals("443") || dst_port.equals("3000")) {               
                 updateIp();
                 return "RedirectToPortal";
             }
