@@ -22,6 +22,8 @@ db = client.portal
 collection = db.Flow
 counters = db.counters
 
+
+
 @app.route ( '/macToGroup',  methods = [ 'GET' ]) 
 def macToGroup(): 
     mac = request.args.get('mac')
@@ -68,17 +70,34 @@ def query_mac():
         row = dict(zip(columns_name, result))
         return json.dumps(row)
 
+
+
 @app.route ( '/insert_mac',  methods = [ 'GET' ])
 def insert_mac():
     mac = request.args.get('mac')
     user = ''
     group = ''
     enable = request.args.get('enable')
+    time = request.args.get('time')
 
-    cursor.execute("INSERT INTO Registered_MAC (MAC, User_ID, Group_ID, Enable) VALUES ('" + mac + "', '" + user + "', '" + group + "', '" + enable + "')")
+    cursor.execute("INSERT INTO Registered_MAC (MAC, User_ID, Group_ID, Enable, Time) VALUES ('" + mac + "', '" + user + "', '" + group + "', '" + enable + "', '" + time + "')")
     conn.commit()
 
     return "finish"
+
+
+
+@app.route ( '/update_registeredTime',  methods = [ 'GET' ])
+def update_registeredTime():
+	mac = request.args.get('mac')
+	time = request.args.get('time')
+	
+	cursor.execute("UPDATE Registered_MAC SET time='" + time + "' WHERE mac='" + mac + "'")
+	conn.commit()
+	
+	return "finish"
+
+
 
 @app.route ( '/query_ip',  methods = [ 'GET' ]) 
 def query_ip(): 
@@ -94,6 +113,8 @@ def query_ip():
         row = dict(zip(columns_name, result))
         return json.dumps(row)
 
+
+
 @app.route ( '/update_ip',  methods = [ 'GET' ]) 
 def update_ip(): 
     ip = request.args.get('ip')
@@ -105,6 +126,8 @@ def update_ip():
 
     return "finish"
 
+
+
 @app.route ( '/insert_ip',  methods = [ 'GET' ]) 
 def insert_ip(): 
     ip = request.args.get('ip')
@@ -115,6 +138,8 @@ def insert_ip():
     conn.commit()
 
     return "finish"
+
+
 
 @app.route ( '/macToUser',  methods = [ 'GET' ]) 
 def macToUser(): 
@@ -130,6 +155,8 @@ def macToUser():
         row = dict(zip(columns_name, result))
         return json.dumps(row)
 
+
+
 @app.route ( '/macToUG',  methods = [ 'GET' ]) 
 def macToUG(): 
     mac = request.args.get('mac')
@@ -143,6 +170,8 @@ def macToUG():
     else:
         row = dict(zip(columns_name, result))
         return json.dumps(row)
+
+
 
 @app.route ( '/userToMac',  methods = [ 'GET' ]) 
 def userToMac(): 
@@ -158,6 +187,8 @@ def userToMac():
 
     return json.dumps(result_list)
 
+
+
 @app.route ( '/groupToMac',  methods = [ 'GET' ]) 
 def groupToMac(): 
     group_id = request.args.get('group_id')
@@ -171,6 +202,8 @@ def groupToMac():
         result_list.append(dict(zip(columns_name, row)))
 
     return json.dumps(result_list)
+
+
 
 @app.route ( '/insertACL',  methods = [ 'GET' ])
 def insertACL():
@@ -189,6 +222,8 @@ def insertACL():
 
     return "finish"
 
+
+
 @app.route ( '/removeACL',  methods = [ 'GET' ]) 
 def removeACL(): 
     acl_id = request.args.get('acl_id')
@@ -197,6 +232,8 @@ def removeACL():
     conn.commit()
 
     return "finish"
+
+
 
 @app.route ( '/getAcl',  methods = [ 'GET' ]) 
 def getAcl(): 
@@ -209,6 +246,8 @@ def getAcl():
         result_list.append(dict(zip(columns_name, row)))
 
     return json.dumps(result_list)
+
+
 
 @app.route ( '/swToLocation',  methods = [ 'GET' ]) 
 def swToLocation(): 
@@ -223,6 +262,8 @@ def swToLocation():
     else:
         row = dict(zip(columns_name, result))
         return json.dumps(row)
+
+
 
 @app.route ( '/flowClassToUserCount',  methods = [ 'GET' ]) 
 def flowClassToUserCount(): 
@@ -245,6 +286,8 @@ def flowClassToUserCount():
 
     return json.dumps(result_list)
 
+
+
 @app.route ( '/userToPriority',  methods = [ 'GET' ]) 
 def userToPriority(): 
     user = request.args.get('user')
@@ -265,6 +308,8 @@ def userToPriority():
         row = dict(zip(columns_name, result))
         return json.dumps(row)
 
+
+
 @app.route ( '/buildingToPercent',  methods = [ 'GET' ]) 
 def buildingToPercent(): 
     time_interval = request.args.get('time_interval')
@@ -282,6 +327,8 @@ def buildingToPercent():
             result_list.append(dict(zip(columns_name, row)))
 
     return json.dumps(result_list)
+
+
 
 @app.route ( '/update_bytes',  methods = [ 'GET' ])
 def update_bytes():
@@ -315,6 +362,8 @@ def update_bytes():
     )
 
     return "finish"
+
+
 
 @app.route ( '/insertFlow',  methods = [ 'GET' ]) 
 def insertFlow():
@@ -361,11 +410,15 @@ def insertFlow():
 
     return "finish"
 
+
+
 def getNextSequence(flowId):
     # $inc: increase
     counters.update_one({ '_id': flowId }, {'$inc': { 'seq': 1 }}, upsert=True)
     result = counters.find_one({ '_id': flowId })
     return result['seq']
+
+
 
 if  __name__  ==  '__main__' : 
     app.run ( host = '0.0.0.0', port = 5000, debug = True )

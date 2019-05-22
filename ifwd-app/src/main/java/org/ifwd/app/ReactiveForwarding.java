@@ -51,7 +51,6 @@ import org.onosproject.net.Link;
 import org.onosproject.net.Path;
 import org.onosproject.net.PortNumber;
 import org.onosproject.net.device.DeviceEvent;
-//import org.onosproject.net.device.DeviceListener;
 import org.onosproject.net.device.DeviceService;
 import org.onosproject.net.flow.criteria.PortCriterion;
 import org.onosproject.net.flow.criteria.EthCriterion;
@@ -156,7 +155,6 @@ public class ReactiveForwarding {
     private int defaultPriority = DEFAULT_PRIORITY;
 
     private final TopologyListener topologyListener = new InternalTopologyListener();
- //   private final DeviceListener deviceListener = new InternalDeviceListener();
     private final FlowRuleListener flowRuleListener = new InternalFlowRuleListener();
 
     private HashMap<PortNumber, MacAddress> tempMac;
@@ -180,7 +178,6 @@ public class ReactiveForwarding {
         appId = coreService.registerApplication("org.ifwd.app");
         packetService.addProcessor(processor, PacketProcessor.director(2));
         topologyService.addListener(topologyListener);
-//      deviceService.addListener(deviceListener);
         flowRuleService.addListener(flowRuleListener);
         readComponentConfiguration(context);
         requestIntercepts();
@@ -195,7 +192,6 @@ public class ReactiveForwarding {
         flowRuleService.removeFlowRulesById(appId);
         packetService.removeProcessor(processor);
         topologyService.removeListener(topologyListener);
-        //deviceService.removeListener(deviceListener);
         flowRuleService.removeListener(flowRuleListener);
         processor = null;
         log.info("org.ifwd Stopped");
@@ -247,42 +243,34 @@ public class ReactiveForwarding {
     private class ReactivePacketProcessor implements PacketProcessor {
         @Override
         public void process(PacketContext context) {
-            if (context.isHandled()) {
+            if (context.isHandled())
                 return;
-            }
 
             InboundPacket InPkt = context.inPacket();
             Ethernet ethPkt = InPkt.parsed();
 
-            if (ethPkt == null) {
+            if (ethPkt == null)
                 return;
-            }
 
-            //MacAddress macAddress = ethPkt.getSourceMAC();
-
-            if (isControlPacket(ethPkt)) {
+            if (isControlPacket(ethPkt))
                 return;
-            }
 
             HostId srcId = HostId.hostId(ethPkt.getSourceMAC());
             HostId dstId = HostId.hostId(ethPkt.getDestinationMAC());
 
-            if (dstId.mac().isLldp()) {
+            if (dstId.mac().isLldp())
                 return;
-            }
 
             //Add ARP packets
-            if (ethPkt.getEtherType() == Ethernet.TYPE_ARP) {
+            if (ethPkt.getEtherType() == Ethernet.TYPE_ARP)
                 normalPkt(context);
-            }
 
 
 
 
             if (ethPkt.getEtherType() == Ethernet.TYPE_IPV4) {
-                if (dstId.mac().isMulticast()) {
+                if (dstId.mac().isMulticast())
                     return;
-                }
 
                 MacAddress src_mac = ethPkt.getSourceMAC();
                 MacAddress dst_mac = ethPkt.getDestinationMAC();
@@ -314,8 +302,7 @@ public class ReactiveForwarding {
                     TCP tcpPacket = (TCP) ipv4Packet.getPayload();  
                     src_port = PortNumber.portNumber(Integer.toString(tcpPacket.getSourcePort())).toString();   
                     dst_port = PortNumber.portNumber(Integer.toString(tcpPacket.getDestinationPort())).toString();  
-                }
-                else if(protocol == IPv4.PROTOCOL_UDP) {
+                } else if(protocol == IPv4.PROTOCOL_UDP) {
                     UDP udpPacket = (UDP) ipv4Packet.getPayload();
                     src_port = PortNumber.portNumber(Integer.toString(udpPacket.getSourcePort())).toString();   
                     dst_port = PortNumber.portNumber(Integer.toString(udpPacket.getDestinationPort())).toString();              
@@ -331,16 +318,13 @@ public class ReactiveForwarding {
 
                 if(resultAction.equals("Drop")) {
                     return;
-                }
-                else if(resultAction.equals("Pass")) {
+                } else if(resultAction.equals("Pass")) {
                     normalPkt(context);
                     return;
-                }
-                else if(resultAction.equals("PktFromPortal")) {
+                } else if(resultAction.equals("PktFromPortal")) {
                     pktFromPortal(context);
                     return;
-                }
-                else if(resultAction.equals("RedirectToPortal")) {
+                } else if(resultAction.equals("RedirectToPortal")) {
                     redirectToPortal(context);
                     return;
                 }
@@ -361,9 +345,8 @@ public class ReactiveForwarding {
         }
 
         if (pkt.receivedFrom().deviceId().equals(dst.location().deviceId())) {
-            if (!context.inPacket().receivedFrom().port().equals(dst.location().port())) {
+            if (!context.inPacket().receivedFrom().port().equals(dst.location().port()))
                 installRule(context, dst.location().port());
-            }
             return;
         }
 
@@ -404,10 +387,9 @@ public class ReactiveForwarding {
         if(dst == null)
             treatment = DefaultTrafficTreatment.builder().setOutput(PortNumber.FLOOD).build();
         else {
-            if (InPkt.receivedFrom().deviceId().equals(dst.location().deviceId())) {
+            if (InPkt.receivedFrom().deviceId().equals(dst.location().deviceId()))
                 if (!context.inPacket().receivedFrom().port().equals(dst.location().port()))
                     treatment = DefaultTrafficTreatment.builder().setOutput(dst.location().port()).build();
-            }
             else {
                 Path path = calculatePath(context);
 
@@ -451,16 +433,14 @@ public class ReactiveForwarding {
             tempMac = new HashMap<>();
             tempMac.put(src_port, dst_mac);
             macMapping.put(src_mac, tempMac);
-        }
-        else
+        } else
             macMapping.get(src_mac).put(src_port, dst_mac);
 
         if(ipMapping.get(src_mac) == null) {
             tempIp = new HashMap<>();
             tempIp.put(src_port, dst_ip);
             ipMapping.put(src_mac, tempIp);
-        }
-        else
+        } else
             ipMapping.get(src_mac).put(src_port, dst_ip);
 
         ethPkt.setDestinationMACAddress(portal_mac);
@@ -478,10 +458,9 @@ public class ReactiveForwarding {
         if(dst == null)
             treatment = DefaultTrafficTreatment.builder().setOutput(PortNumber.FLOOD).build();
         else {
-            if (InPkt.receivedFrom().deviceId().equals(dst.location().deviceId())) {
+            if (InPkt.receivedFrom().deviceId().equals(dst.location().deviceId()))
                 if (!context.inPacket().receivedFrom().port().equals(dst.location().port()))
                     treatment = DefaultTrafficTreatment.builder().setOutput(dst.location().port()).build();
-            }
             else {
                 Path path = calculatePath(context);
 
@@ -494,35 +473,6 @@ public class ReactiveForwarding {
 
         OutboundPacket OutPkt = new DefaultOutboundPacket(in_sw, treatment, ByteBuffer.wrap(ethPkt.serialize()));
         
-        // Inorder to enable PktFromPortal
-        /*treatment = DefaultTrafficTreatment.builder()
-                .setIpSrc(dst_ip)
-                .setOutput(PortNumber.NORMAL)
-                .build();
-
-        Ip4Prefix matchIp4SrcPrefix =
-                    Ip4Prefix.valueOf(ipv4Packet.getSourceAddress(),
-                                      Ip4Prefix.MAX_MASK_LENGTH);
-
-        TrafficSelector.Builder selectorBuilder = DefaultTrafficSelector.builder();
-        selectorBuilder.matchEthDst(src_mac)
-                       .matchEthType(Ethernet.TYPE_IPV4)
-                       .matchIPDst(matchIp4SrcPrefix)
-                       .matchIPProtocol(ipv4Protocol)
-                       .matchTcpDst(TpPort.tpPort(tcpPacket.getSourcePort()));
-
-        ForwardingObjective forwardingObjective = DefaultForwardingObjective.builder()
-                .withSelector(selectorBuilder.build())
-                .withTreatment(treatment)
-                .withPriority(40002)
-                .withFlag(ForwardingObjective.Flag.VERSATILE)
-                .fromApp(appId)
-                .makeTemporary(flowTimeout)
-                .add();
-
-        flowObjectiveService.forward(DeviceId.deviceId(portal_location), forwardingObjective);*/
-        
-
         packetService.emit(OutPkt);
     }
 
@@ -536,9 +486,8 @@ public class ReactiveForwarding {
         Set<Path> paths = topologyService.getPaths(topologyService.currentTopology(),
                                          InPkt.receivedFrom().deviceId(),
                                          dst.location().deviceId());
-        if (paths.isEmpty()) {
+        if (paths.isEmpty())
             return null;
-        }
 
         Path path = pickForwardPathIfPossible(paths, InPkt.receivedFrom().port());
         if (path == null) {
@@ -563,20 +512,18 @@ public class ReactiveForwarding {
         Path lastPath = null;
         for (Path path : paths) {
             lastPath = path;
-            if (!path.src().port().equals(notToPort)) {
+            if (!path.src().port().equals(notToPort))
                 return path;
-            }
         }
         return lastPath;
     }
 
     private void flood(PacketContext context) {
         if (topologyService.isBroadcastPoint(topologyService.currentTopology(),
-                                             context.inPacket().receivedFrom())) {
+                                             context.inPacket().receivedFrom()))
             packetOut(context, PortNumber.FLOOD);
-        } else {
+        else
             context.block();
-        }
     }
 
     private void packetOut(PacketContext context, PortNumber portNumber) {
@@ -638,9 +585,8 @@ public class ReactiveForwarding {
 
         TrafficTreatment.Builder treatmentBuilder = DefaultTrafficTreatment.builder();
 
-        if(queue != Long.valueOf(-1)) {
+        if(queue != Long.valueOf(-1))
             treatmentBuilder.setQueue(queue);
-        }
         
         treatmentBuilder.setOutput(portNumber);
 
@@ -697,25 +643,6 @@ public class ReactiveForwarding {
         }
     }
 
- /*   private class InternalDeviceListener implements DeviceListener {
-        @Override
-        public void event(DeviceEvent event) {
-            DeviceId switchId = event.subject().id();
-
-            switch(event.type()) {
-                case DEVICE_ADDED:
-                case DEVICE_AVAILABILITY_CHANGED:
-                    if(deviceService.isAvailable(switchId))
-                       // addDefaultRule(switchId);
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-*/
-
-
     private class InternalTopologyListener implements TopologyListener {
         @Override
         public void event(TopologyEvent event) {
@@ -767,20 +694,17 @@ public class ReactiveForwarding {
                 Link curLink = pathLinks.get(i);
                 DeviceId curDevice = curLink.src().deviceId();
 
-                if (i != 0) {
+                if (i != 0)
                     cleanFlowRules(sd, curDevice);
-                }
 
                 Set<Path> pathsFromCurDevice =
                         topologyService.getPaths(topologyService.currentTopology(),
                                                  curDevice, dstId);
-                if (pickForwardPathIfPossible(pathsFromCurDevice, curLink.src().port()) != null) {
+                if (pickForwardPathIfPossible(pathsFromCurDevice, curLink.src().port()) != null)
                     break;
-                } else {
-                    if (i + 1 == pathLinks.size()) {
+                else
+                    if (i + 1 == pathLinks.size())
                         cleanFlowRules(sd, curLink.dst().deviceId());
-                    }
-                }
             }
         }
     }
@@ -793,15 +717,12 @@ public class ReactiveForwarding {
             for (Instruction i : r.treatment().allInstructions()) {
                 if (i.type() == Instruction.Type.OUTPUT) {
                     for (Criterion cr : r.selector().criteria()) {
-                        if (cr.type() == Criterion.Type.ETH_DST) {
-                            if (((EthCriterion) cr).mac().equals(pair.dst)) {
+                        if (cr.type() == Criterion.Type.ETH_DST)
+                            if (((EthCriterion) cr).mac().equals(pair.dst))
                                 matchesDst = true;
-                            }
-                        } else if (cr.type() == Criterion.Type.ETH_SRC) {
-                            if (((EthCriterion) cr).mac().equals(pair.src)) {
+                        else if (cr.type() == Criterion.Type.ETH_SRC)
+                            if (((EthCriterion) cr).mac().equals(pair.src))
                                 matchesSrc = true;
-                            }
-                        }
                     }
                 }
             }
@@ -818,11 +739,10 @@ public class ReactiveForwarding {
         for (FlowEntry r : rules) {
             MacAddress src = null, dst = null;
             for (Criterion cr : r.selector().criteria()) {
-                if (cr.type() == Criterion.Type.ETH_DST) {
+                if (cr.type() == Criterion.Type.ETH_DST)
                     dst = ((EthCriterion) cr).mac();
-                } else if (cr.type() == Criterion.Type.ETH_SRC) {
+                else if (cr.type() == Criterion.Type.ETH_SRC)
                     src = ((EthCriterion) cr).mac();
-                }
             }
             builder.add(new SrcDstPair(src, dst));
         }
@@ -857,12 +777,12 @@ public class ReactiveForwarding {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) {
+            if (this == o)
                 return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
+            
+            if (o == null || getClass() != o.getClass())
                 return false;
-            }
+            
             SrcDstPair that = (SrcDstPair) o;
             return Objects.equals(src, that.src) &&
                     Objects.equals(dst, that.dst);
