@@ -82,58 +82,84 @@ public class Authentication {
 	}
 	
 	public String accessCheck() {
+		/**
+		 * Check whether the packet can pass or it needs redirection
+		 *
+		 * @return A string of Pass/Drop/PktFromPortal/RedirectToPortal
+		 * 			Pass: Host transmitting the packet is authenticated
+		 * 			Drop: The packet cannot be transmitted in this network
+		 * 			PktFromPortal: Packets for authentication from portal
+		 * 			RedirectToPortal: Redirect the packet to portal for authentication
+		 **/
 		
-		//DHCP
+		// Pass DHCP packets
 		if (protocol == IPv4.PROTOCOL_UDP)
 			if((src_port.equals("67") && dst_port.equals("68")) || (src_port.equals("68") && dst_port.equals("67")))
 				return "Pass";
 		
-		//DNS
+		// Pass DNS packets
 		if (protocol == IPv4.PROTOCOL_UDP || protocol == IPv4.PROTOCOL_TCP)
 			if((src_port.equals("53") || dst_port.equals("53")))
 				return "Pass";
 		
-		//ARP in ReactiveForwarding.java
+		// ARP in ReactiveForwarding.java
 		
-		//MySQL
+		// Pass MySQL packets
 		if (protocol == IPv4.PROTOCOL_TCP)
 			if ((src_ip.equals(db_ip) &&  src_port.equals("3306")) || dst_ip.equals(db_ip) && (dst_port.equals("3306")))
 				return "Pass";
 		
-		if(protocol == IPv4.PROTOCOL_ICMP)
+		if(protocol == IPv4.PROTOCOL_ICMP) {
+			// Pass ICMP packets
 			return "Pass";
-		else if(src_mac.equalsIgnoreCase(portal_mac))
+		} else if(src_mac.equalsIgnoreCase(portal_mac)) {
+			// Packets from port 80/443/3000 of portal need some modification
+			// Pass packets from other ports of portal
 			if(src_port.equals("80") || src_port.equals("443") || src_port.equals("3000"))
 				return "PktFromPortal";
 			else
 				return "Pass";
-		else if(dst_mac.equalsIgnoreCase(portal_mac))
+		} else if(dst_mac.equalsIgnoreCase(portal_mac)) {
+			// Pass any packets that its destination is portal
 			return "Pass";
+		}
 		
+		// Check whether the host is authenticated or not
 		boolean src_enable = isMacPass(src_mac);
 		
+		// Get User_IDs of source and destination hosts
 		src_user = macToUser(src_mac);
 		dst_user = macToUser(dst_mac);
 		
-		if(src_mac.equalsIgnoreCase(gateway_mac))
+		if(src_mac.equalsIgnoreCase(gateway_mac)) {
+			// Pass packets from gateway
 			result = "Pass";
-		else if(!src_mac.equalsIgnoreCase(gateway_mac) && src_enable) {
-			src_group = macToGroup(src_mac);
-			if (!AclToGroup(src_group, dst_ip))
+		} else if(!src_mac.equalsIgnoreCase(gateway_mac) && src_enable) {
+			// If the host is not gateway and it is authenticated,
+			// check ACL and pass the packet if it is not blocked
+			// Update expiration time in Registered_MAC table
+			if (!AclToGroup(macToGroup()))
 				result = "Pass";
-			updateRegisteredTime();
-		} else if(!src_mac.equalsIgnoreCase(portal_mac) && !dst_mac.equalsIgnoreCase(portal_mac))
+			updateExpirationTime();
+		} else if(!src_mac.equalsIgnoreCase(portal_mac) && !dst_mac.equalsIgnoreCase(portal_mac)) {
+			// If the packet is from unauthenticated host and destination is not portal,
+			// redirect it to portal and update IP_MAC table
 			if(dst_port.equals("80") || dst_port.equals("443") || dst_port.equals("3000")) {               
 				updateIp();
 				return "RedirectToPortal";
 			}
+		}
 		
+		// Update IP_MAC table and record flow information
 		updateIp();
 		insertAssociation();
 		return result;
 	}
 	
 	private void insertAssociation() {
+		/**
+		 * Record packets flow information
+		 **/
 		try {
 			String date = dateFormat.format(new Date(Long.valueOf(this.time)));
 			String time = timeFormat.format(new Date(Long.valueOf(this.time)));
@@ -143,8 +169,8 @@ public class Authentication {
 				"&protocol=" + protocol + "&src_user=" + src_user + "&dst_user=" + dst_user + "&swId=" + in_sw + 
 				"&port=" + in_port + "&date=" + date + "&time=" + time + "&src_swId=" + src_access_sw + 
 				"&src_access_port=" + src_access_port + "&dst_swId=" + dst_access_sw + "&dst_access_port=" + dst_access_port;
-			
 			s_url = s_url.replace(" ","%20");
+			
 			URL url = new URL(s_url);
 			URLConnection yc = url.openConnection();
 			BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
@@ -158,12 +184,26 @@ public class Authentication {
 	
 	public void updateBytes(String in_sw, String in_port, String src_mac, String dst_mac, String src_ip, String dst_ip, 
 			String src_port, String dst_port, short protocol, Long bytes) {
+		/**
+		 * Record number of bytes of a packet flow from a flow rule
+		 *
+		 * @param in_sw switch ID
+		 * @param in_port switch port which received packets
+		 * @param src_mac source MAC
+		 * @param dst_mac destination MAC
+		 * @param src_ip source IP
+		 * @param dst_ip destination IP
+		 * @param src_port source port
+		 * @param dst_port destination port
+		 * @param protocol packets transmitted on which L3 or L4 protocol
+		 * @param bytes number of bytes
+		 **/
 		try {
 			String s_url = accessDbUrl + "/update_bytes?src_mac=" + src_mac + "&dst_mac=" + dst_mac + 
 				"&src_ip=" + src_ip + "&dst_ip=" + dst_ip + "&src_port=" + src_port + "&dst_port=" + dst_port + 
 				"&protocol=" + protocol + "&swId=" + in_sw + "&port=" + in_port + "&bytes=" + bytes;
-			
 			s_url = s_url.replace(" ","%20");
+			
 			URL url = new URL(s_url);
 			URLConnection yc = url.openConnection();
 			BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
@@ -176,8 +216,16 @@ public class Authentication {
 	}
 	
 	private String macToUser(String mac) {
+		/**
+		 * Get User_ID of the host from  Registered_MAC table
+		 *
+		 * @param mac MAC address of the host
+		 **/
 		try {
-			URL url = new URL(accessDbUrl + "/macToUser?mac=" + mac);	
+			String s_url = accessDbUrl + "/macToUser?mac=" + mac;
+			s_url = s_url.replace(" ", "%20");
+			
+			URL url = new URL(s_url);	
 			URLConnection yc = url.openConnection();
 			BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 			
@@ -196,8 +244,17 @@ public class Authentication {
 	}
 	
 	private void updateIp() {
+		/**
+		 * Update IP to MAC in IP_MAC table
+		 * 
+		 * Check whether IP is in IP_MAC table
+		 * Update MAC of it if IP exists, insert it otherwise
+		 **/
 		try {
-			URL url = new URL(accessDbUrl + "/query_ip?ip=" + src_ip);
+			String s_url = accessDbUrl + "/query_ip?ip=" + src_ip;
+			s_url = s_url.replace(" ", "%20");
+			
+			URL url = new URL(s_url);
 			URLConnection yc = url.openConnection();
 			BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 			
@@ -205,8 +262,6 @@ public class Authentication {
 			in.close();
 			
 			String nowTime = dateTimeFormat.format(new Date(Long.valueOf(this.time)));
-			
-			String s_url;
 			
 			if(!inputLine.equals("empty"))
 				s_url = accessDbUrl + "/update_ip?ip=" + src_ip + "&mac=" + src_mac + "&time=" + nowTime;           
@@ -226,10 +281,19 @@ public class Authentication {
 	}
 	
 	private void insertMac(String mac) {
+		/**
+		 * Insert MAC in Registered_MAC table for authentication check
+		 *
+		 * @param mac MAC address of the host
+		 **/
 		try {
 			if(!mac.equalsIgnoreCase(portal_mac) && !mac.equalsIgnoreCase(gateway_mac)) {
-				String nowTime = dateTimeFormat.format(new Date(Long.valueOf(this.time)));
-				String s_url = accessDbUrl + "/insert_mac?mac=" + mac + "&enable=0&time=" + nowTime;
+				// Milliseconds for one day
+				long milliSec = 86400000;
+				// Relogin after 7 days
+				int days = 7;
+				String expirationTime = dateTimeFormat.format(new Date(Long.valueOf(this.time) + days*milliSec));
+				String s_url = accessDbUrl + "/insert_mac?mac=" + mac + "&enable=0&time=" + expirationTime;
 				s_url = s_url.replace(" ", "%20");
 				
 				URL url = new URL(s_url);
@@ -245,8 +309,19 @@ public class Authentication {
 	}
 	
 	private boolean macExist(String mac) {
+		/**
+		 * Check whether MAC exists in Registered_MAC table
+		 * If it does not exist, insert it
+		 *
+		 * @param mac MAC address of the host
+		 *
+		 * @return true if it exists, false otherwise
+		 **/
 		try {
-			URL url = new URL(accessDbUrl + "/query_mac?mac=" + mac);
+			String s_url = accessDbUrl + "/query_mac?mac=" + mac;
+			s_url = s_url.replace(" ", "%20");
+			
+			URL url = new URL(s_url);
 			URLConnection yc = url.openConnection();
 			BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 			
@@ -258,8 +333,7 @@ public class Authentication {
 				mac_enable = (j.getInt("Enable") != 0);
 				
 				return true; 
-			}
-			else
+			} else
 				insertMac(mac); 
 			
 			return false;
@@ -270,6 +344,13 @@ public class Authentication {
 	}
 	
 	private boolean isMacPass(String mac) {
+		/**
+		 * Check whether MAC is authenticated
+		 *
+		 * @param mac MAC address of the host
+		 *
+		 * @return true if it is authenticated, false otherwise
+		 **/
 		if(macExist(mac))
 			if(mac_enable)
 				return true;
@@ -277,9 +358,19 @@ public class Authentication {
 		return false;
 	}
 	
-	private boolean AclToGroup(String group_id, String dst_ip) {
+	private boolean AclToGroup(String group_id) {
+		/**
+		 * Check whether host can access destination
+		 *
+		 * @param group_id account group of the host
+		 *
+		 * @return true if it is blocked, false otherwise
+		 **/
 		try {
-			URL url = new URL(accessDbUrl + "/query_acl?group_id=" + group_id + "&ip=" + dst_ip);
+			String s_url = accessDbUrl + "/query_acl?group=" + group_id + "&ip=" + dst_ip;
+			s_url = s_url.replace(" ", "%20");
+			
+			URL url = new URL(s_url);
 			URLConnection yc = url.openConnection();
 			BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 			
@@ -295,9 +386,17 @@ public class Authentication {
 		}
 	}
 	
-	private String macToGroup(String mac) {
+	private String macToGroup() {
+		/**
+		 * Get account group of source host from Registered_MAC table
+		 *
+		 * @return Group_ID
+		 **/
 		try {
-			URL url = new URL(accessDbUrl + "/macToGroup?mac=" + mac);	
+			String s_url = accessDbUrl + "/macToGroup?mac=" + src_mac;
+			s_url = s_url.replace(" ", "%20");
+			
+			URL url = new URL(s_url);	
 			URLConnection yc = url.openConnection();
 			BufferedReader in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
 			
@@ -315,11 +414,17 @@ public class Authentication {
 		}  
 	}  
 	
-	private void updateRegisteredTime()  {
+	private void updateExpirationTime()  {
+		/**
+		 * Update the expiration time of the host in Registered_MAC table
+		 **/
 		try {
-			long milliSec = 86400000; // Milliseconds for one day
-			String nowTime = dateTimeFormat.format(new Date(Long.valueOf(this.time) + 7*milliSec)); // Relogin after 7 days
-			String s_url = accessDbUrl + "/update_registeredTime?mac=" + src_mac + "&time=" + nowTime;
+			// Milliseconds for one day
+			long milliSec = 86400000;
+			// Relogin after 7 days
+			int days = 7;
+			String expirationTime = dateTimeFormat.format(new Date(Long.valueOf(this.time) + days*milliSec));
+			String s_url = accessDbUrl + "/update_expirationTime?mac=" + src_mac + "&time=" + expirationTime;
 			s_url = s_url.replace(" ", "%20");
 			
 			URL url = new URL(s_url);
@@ -328,7 +433,7 @@ public class Authentication {
 			
 			in.close();
 		} catch (Exception e) {
-			log.info("updateRegisteredTime exception: ", e);
+			log.info("updateExpirationTime exception: ", e);
 			return;
 		}
 	}

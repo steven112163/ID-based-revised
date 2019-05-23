@@ -42,7 +42,7 @@ def macToGroup():
 
 @app.route ( '/query_acl',  methods = [ 'GET' ]) 
 def query_acl(): 
-    group_id = request.args.get('group_id')
+    group_id = request.args.get('group')
     ip = request.args.get('ip')
     cursor.execute("SELECT * FROM ACL_Group_IP WHERE IP='" + ip + "' and Group_ID='" + group_id + "'")
     result = cursor.fetchone()
@@ -75,8 +75,8 @@ def query_mac():
 @app.route ( '/insert_mac',  methods = [ 'GET' ])
 def insert_mac():
     mac = request.args.get('mac')
-    user = ''
-    group = ''
+    user = ' '
+    group = ' '
     enable = request.args.get('enable')
     time = request.args.get('time')
 
@@ -87,8 +87,8 @@ def insert_mac():
 
 
 
-@app.route ( '/update_registeredTime',  methods = [ 'GET' ])
-def update_registeredTime():
+@app.route ( '/update_expirationTime',  methods = [ 'GET' ])
+def update_expirationTime():
 	mac = request.args.get('mac')
 	time = request.args.get('time')
 	

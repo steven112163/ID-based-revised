@@ -4,7 +4,7 @@
     <service servicefactory="false">
         <provide interface="org.ifwd.app.ReactiveForwarding"/>
     </service>
-    <property name="flowTimeout" type="Integer" value="10"/>
+    <property name="flowTimeout" type="Integer" value="20"/>
     <property name="flowPriority" type="Integer" value="20"/>
     <property name="defaultPriority" type="Integer" value="40001"/>
     <property name="service.pid" value="org.ifwd.app.ReactiveForwarding"/>
