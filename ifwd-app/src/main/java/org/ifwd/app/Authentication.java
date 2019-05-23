@@ -293,7 +293,7 @@ public class Authentication {
 				// Relogin after 7 days
 				int days = 7;
 				String expirationTime = dateTimeFormat.format(new Date(Long.valueOf(this.time) + days*milliSec));
-				String s_url = accessDbUrl + "/insert_mac?mac=" + mac + "&enable=0&time=" + expirationTime;
+				String s_url = accessDbUrl + "/insert_mac?mac=" + mac + "&enable=0&switch=" + src_access_sw + "&time=" + expirationTime;
 				s_url = s_url.replace(" ", "%20");
 				
 				URL url = new URL(s_url);
@@ -424,7 +424,7 @@ public class Authentication {
 			// Relogin after 7 days
 			int days = 7;
 			String expirationTime = dateTimeFormat.format(new Date(Long.valueOf(this.time) + days*milliSec));
-			String s_url = accessDbUrl + "/update_expirationTime?mac=" + src_mac + "&time=" + expirationTime;
+			String s_url = accessDbUrl + "/update_expirationTime?mac=" + src_mac + "&switch=" + src_access_sw + "&time=" + expirationTime;
 			s_url = s_url.replace(" ", "%20");
 			
 			URL url = new URL(s_url);

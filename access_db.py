@@ -78,9 +78,10 @@ def insert_mac():
     user = ' '
     group = ' '
     enable = request.args.get('enable')
+    switch = request.args.get('switch')
     time = request.args.get('time')
 
-    cursor.execute("INSERT INTO Registered_MAC (MAC, User_ID, Group_ID, Enable, Time) VALUES ('" + mac + "', '" + user + "', '" + group + "', '" + enable + "', '" + time + "')")
+    cursor.execute("INSERT INTO Registered_MAC (MAC, User_ID, Group_ID, Enable, Switch_ID, Time) VALUES ('" + mac + "', '" + user + "', '" + group + "', '" + enable + "', '" + switch + "', '" + time + "')")
     conn.commit()
 
     return "finish"
@@ -90,9 +91,10 @@ def insert_mac():
 @app.route ( '/update_expirationTime',  methods = [ 'GET' ])
 def update_expirationTime():
 	mac = request.args.get('mac')
+	switch = request.args.get('switch')
 	time = request.args.get('time')
 	
-	cursor.execute("UPDATE Registered_MAC SET time='" + time + "' WHERE mac='" + mac + "'")
+	cursor.execute("UPDATE Registered_MAC SET time='" + time + "', Switch_ID ='" + switch + "' WHERE mac='" + mac + "'")
 	conn.commit()
 	
 	return "finish"
