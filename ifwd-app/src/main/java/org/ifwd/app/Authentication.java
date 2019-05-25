@@ -119,9 +119,6 @@ public class Authentication {
 				return "PktFromPortal";
 			else
 				return "Pass";
-		} else if(dst_mac.equalsIgnoreCase(portal_mac)) {
-			// Pass any packets that its destination is portal
-			return "Pass";
 		}
 		
 		// Check whether the host is authenticated or not
@@ -131,7 +128,10 @@ public class Authentication {
 		src_user = macToUser(src_mac);
 		dst_user = macToUser(dst_mac);
 		
-		if(src_mac.equalsIgnoreCase(gateway_mac)) {
+		if(dst_mac.equalsIgnoreCase(portal_mac)) {
+			// Pass any packets that its destination is portal
+			return "Pass";
+		} else if(src_mac.equalsIgnoreCase(gateway_mac)) {
 			// Pass packets from gateway
 			result = "Pass";
 		} else if(!src_mac.equalsIgnoreCase(gateway_mac) && src_enable) {
@@ -288,12 +288,7 @@ public class Authentication {
 		 **/
 		try {
 			if(!mac.equalsIgnoreCase(portal_mac) && !mac.equalsIgnoreCase(gateway_mac)) {
-				// Milliseconds for one day
-				long milliSec = 86400000;
-				// Relogin after 7 days
-				int days = 7;
-				String expirationTime = dateTimeFormat.format(new Date(Long.valueOf(this.time) + days*milliSec));
-				String s_url = accessDbUrl + "/insert_mac?mac=" + mac + "&enable=0&switch=" + src_access_sw + "&time=" + expirationTime;
+				String s_url = accessDbUrl + "/insert_mac?mac=" + mac + "&enable=0&switch=" + src_access_sw;
 				s_url = s_url.replace(" ", "%20");
 				
 				URL url = new URL(s_url);
