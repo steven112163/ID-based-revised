@@ -58,19 +58,21 @@ function clickDelete(passedMAC) {
 session_start();
 include("db.php");
 
-$sql = 'SELECT * FROM Registered_MAC WHERE User_ID = "'.$_SESSION['User_ID'].'";';
+$sql = 'SELECT MAC, User_ID, Group_ID, Building, Room FROM Registered_MAC JOIN Switch USING(Switch_ID) WHERE User_ID = "'.$_SESSION['User_ID'].'";';
 $result = mysqli_query($_SESSION['link'], $sql);
 
 echo "<div>";
 echo "<h1>Current Users</h1>";
 
-echo "<table border = '1'><tr><th>MAC</th><th>User_ID</th><th>Group_ID</th><th>Host</th><th>Delete</th></tr>";
+echo "<table border = '1'><tr><th>MAC</th><th>User_ID</th><th>Group_ID</th><th>Building</th><th>Room</th><th>Host</th><th>Delete</th></tr>";
 
 while($row = mysqli_fetch_row($result)) {
 	echo "<tr>";
 	echo "<td>".$row[0]."</td>";
 	echo "<td>".$row[1]."</td>";
 	echo "<td>".$row[2]."</td>";
+	echo "<td>".$row[3]."</td>";
+	echo "<td>".$row[4]."</td>";
 	if($_SESSION['MAC'] == $row[0]) {
 		echo "<td class='red'>Current host</td>";
 		echo "<td></td>";
