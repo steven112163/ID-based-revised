@@ -48,8 +48,8 @@ else{
     else{
 	
 	
-        //$sql = 'UPDATE Registered_MAC SET Enable=true, User_ID = "'.$user_id.'", Group_ID = "'.$group_id.'" WHERE MAC= "'.$mac.'"';
-        $sql = 'INSERT INTO Registered_MAC (Enable, User_ID, Group_ID, MAC) VALUES (true, "'.$user_id.'", "'.$group_id.'", "'.$mac.'") ON DUPLICATE KEY UPDATE User_ID = "'.$user_id.'", Group_ID = "'.$group_id.'", Enable=true';
+        $sql = 'UPDATE Registered_MAC SET Enable=true, User_ID = "'.$user_id.'", Group_ID = "'.$group_id.'", Time = date_add(now(), interval 7 day)  WHERE MAC= "'.$mac.'"';
+        //$sql = 'INSERT INTO Registered_MAC (Enable, User_ID, Group_ID, MAC) VALUES (true, "'.$user_id.'", "'.$group_id.'", "'.$mac.'") ON DUPLICATE KEY UPDATE User_ID = "'.$user_id.'", Group_ID = "'.$group_id.'", Enable=true';
 	$result = mysqli_query($link, $sql);
 	//echo $user_id;
 	/*
